@@ -14,6 +14,8 @@ import java.io.OutputStream;
 
 /**
  * Created by yudiandrean on 11/4/2015.
+ *
+ * This class inports the database file and
  */
 public class DataBaseHelper extends SQLiteOpenHelper {
     //The Android's default system path of your application database.

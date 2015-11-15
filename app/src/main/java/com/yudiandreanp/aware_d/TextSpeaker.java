@@ -11,6 +11,7 @@ import java.util.Locale;
  * Created by yudiandrean on 11/3/2015.
  */
 public class TextSpeaker implements TextToSpeech.OnInitListener {
+
     private TextToSpeech tts;
 
     private boolean ready = false;
