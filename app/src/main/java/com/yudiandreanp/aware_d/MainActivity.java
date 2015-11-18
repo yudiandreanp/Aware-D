@@ -2,8 +2,6 @@ package com.yudiandreanp.aware_d;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
 import java.util.Random;
 import java.lang.Integer;
 import android.database.Cursor;
@@ -13,9 +11,9 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Bundle;
+import android.speech.tts.UtteranceProgressListener;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
@@ -26,11 +24,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-
-import com.google.common.collect.ContiguousSet;
-import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
 
 
 /**
@@ -40,26 +34,25 @@ import com.google.common.collect.Range;
  *
  */
 public class MainActivity extends Activity implements RecognitionListener {
-
     private final int CHECK_CODE = 0x1;
-    private final int MAX_INDEX = 11;
+    private final int MAX_INDEX = 21;
     private final int MIN_INDEX = 1;
     private TextView txtSpeechInput;
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private ProgressBar progressBar;
-    private SpeechRecognizer speech = null;
+    private SpeechRecognizer speechListener = null;
     private Intent recognizerIntent;
     private ToggleButton toggleButton;
     private String LOG_TAG = "VoiceRecognitionActivity";
     private TextSpeaker textSpeaker;
-    private ToggleButton testSpeak;
-    private EditText inputSpeak;
-    private CompoundButton.OnCheckedChangeListener toggleListener;
-    private Button buttonSpeak;
+    private Button buttonSpeak, smsButton;
     private ArrayList<Integer> questionIndex;
     private int count; //counter for index
     private String currentUserAnswer; //holds the spoken answer by the user
     private ArrayList <String> currentQuestionAnswer; //holds the current question and answer
+    private GPSManager currentLocation;
+    private SMSManager smsSender;
+    private boolean utteranceStatusFinished = false;
 
 
     @Override
@@ -67,27 +60,29 @@ public class MainActivity extends Activity implements RecognitionListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        createTextSpeaker();
+        currentLocation= new GPSManager(MainActivity.this);
+        smsSender = new SMSManager ();
+        createTextSpeaker(); //create the speaker instance
         txtSpeechInput = (TextView) findViewById(R.id.txtSpeechInput);
         //btnSpeak = (ImageButton) findViewById(R.id.btnSpeak);
         toggleButton = (ToggleButton) findViewById(R.id.btnSpeak2);
         progressBar = (ProgressBar) findViewById(R.id.progressBar1);
+        smsButton = (Button) findViewById(R.id.smsButton);
         progressBar.setVisibility(View.INVISIBLE);
         questionIndex = rangeList(MIN_INDEX, MAX_INDEX);
         shuffleIndex();
         count = 0;
+        ToggleButton testSpeak;
         // hide the action bar
         //getActionBar().hide();
         createSpeechRecognizer();
         recognizerIntent = new Intent(RecognizerIntent.ACTION_VOICE_SEARCH_HANDS_FREE);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_SECURE, true);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-UK");
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
-        inputSpeak = (EditText) findViewById(R.id.testText);
         buttonSpeak = (Button) findViewById(R.id.buttonSpeak);
         buttonSpeak.setVisibility(View.INVISIBLE);
 
@@ -100,16 +95,17 @@ public class MainActivity extends Activity implements RecognitionListener {
                 if (isChecked) {
                     createSpeechRecognizer();
                     setProgressVisible();
-                    speech.startListening(recognizerIntent);
+                    speechListener.startListening(recognizerIntent);
                 } else {
                     setProgressInvisible();
-                    speech.stopListening();
+                    speechListener.stopListening();
                 }
             }
         });
 
         testSpeak = (ToggleButton) findViewById(R.id.toggleButton);
 
+        CompoundButton.OnCheckedChangeListener toggleListener;
         toggleListener = new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton view, boolean isChecked) {
@@ -117,10 +113,8 @@ public class MainActivity extends Activity implements RecognitionListener {
                     createTextSpeaker();
                     buttonSpeak.setVisibility(View.VISIBLE);
                     textSpeaker.allow(true);
-                    textSpeaker.speak(getString(R.string.start_speaking));
                 } else {
                     buttonSpeak.setVisibility(View.INVISIBLE);
-                    textSpeaker.speak(getString(R.string.stop_speaking));
                     textSpeaker.destroy();
                                     }
             }
@@ -131,33 +125,50 @@ public class MainActivity extends Activity implements RecognitionListener {
         buttonSpeak.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
 
-                if ((!inputSpeak.getText().toString().equals(""))) {
-                    checkTTS();
-                    speakQuestion(); //speaks random questions
-                    new CountDownTimer(3000, 1000) {
+                checkTTS();
+                speakQuestion();
 
-                        public void onTick(long millisUntilFinished) {
-                                                    }
-
-                        public void onFinish() {
-                            triggerUserSpeaking();
+                if ((!textSpeaker.isFinished()) && textSpeaker.isReady())
+                {
+                    while(!textSpeaker.isFinished())
+                    {
+                        if (textSpeaker.isFinished()) {
+                            break;
                         }
-                    }.start();
-
-                } else {
-                    checkTTS();
-                    speakQuestion();
-                    new CountDownTimer(3000, 1000) {
-
-                        public void onTick(long millisUntilFinished) {
-                        }
-
-                    public void onFinish() {
-                        triggerUserSpeaking();
                     }
-                    }.start();
                 }
+
+                if (textSpeaker.isFinished()) {
+                    triggerUserSpeaking();
+                    textSpeaker.setNotFinished();
+                }
+
             }
+        });
+
+        smsButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+
+                double dLatitude;
+                double dLongitude;
+
+                if(currentLocation.canGetLocation())
+                {
+                    dLatitude = currentLocation.getLatitude();
+                    dLongitude = currentLocation.getLongitude();
+                    Toast.makeText(getApplicationContext(), "Your Location is - \nLat: " + dLatitude + "\nLong: " + dLongitude, Toast.LENGTH_LONG).show();
+                    String latitude = String.valueOf(dLatitude);
+                    String longitude = String.valueOf(dLongitude);
+                    String phoneNumber = "+6289693959600";
+                    smsSender.sendLocationSMS(phoneNumber, latitude, longitude);
+                }
+                else
+                {
+                    currentLocation.showSettingsAlert();
+                }
+
+
+                }
         });
 
 
@@ -166,7 +177,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     @Override
     public void onResume() {
         super.onResume();
-        if (speech == null){
+        if (speechListener == null){
             createSpeechRecognizer();
         }
     }
@@ -174,10 +185,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     @Override
     protected void onPause() {
         super.onPause();
-        if (speech != null) {
-            speech.destroy();
-            Log.i(LOG_TAG, "destroy speech recognizer");
-        }
+
     }
 
     @Override
@@ -241,6 +249,8 @@ public class MainActivity extends Activity implements RecognitionListener {
                 txtSpeechInput.setText("WRONG");
             }
         }
+
+        speechListener.destroy();
     }
 
 
@@ -274,7 +284,8 @@ public class MainActivity extends Activity implements RecognitionListener {
         //textSpeaker.speak(inputSpeak.getText().toString());
         currentQuestionAnswer = getQuestionAnswer();
         textSpeaker.speak(currentQuestionAnswer.get(0));
-    }
+
+                }
 
     //checks text-to-speech data
     private void checkTTS() {
@@ -332,7 +343,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     //reads question on randomized value
     private ArrayList getQuestionAnswer()
     {
-        DBTestAdapter mDbHelper = new DBTestAdapter(MainActivity.this);
+        DBReader mDbHelper = new DBReader(MainActivity.this);
         mDbHelper.createDatabase();
         mDbHelper.open();
         ArrayList <String> result = new ArrayList <>();
@@ -362,8 +373,8 @@ public class MainActivity extends Activity implements RecognitionListener {
     //creates the speech recognition instance
     private void createSpeechRecognizer()
     {
-        speech = SpeechRecognizer.createSpeechRecognizer(this);
-        speech.setRecognitionListener(this);
+        speechListener = SpeechRecognizer.createSpeechRecognizer(this);
+        speechListener.setRecognitionListener(this);
     }
 
     //creates the speaker instance
@@ -434,6 +445,8 @@ public class MainActivity extends Activity implements RecognitionListener {
     private void triggerUserSpeaking() {
         createSpeechRecognizer();
         setProgressVisible();
-        speech.startListening(recognizerIntent);
+        speechListener.startListening(recognizerIntent);
     }
+
+
 }

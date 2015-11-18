@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/dont_drive"
+        android:layout_marginTop="80dp"
+        android:textSize="35dp"
+        android:layout_gravity="center_horizontal"
+        android:id="@+id/textView" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/stop"
+        android:layout_marginTop="20dp"
+        android:layout_gravity="center" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/blabla_dont_drive"
+        android:id="@+id/textView2"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginLeft="5dp"
+        android:layout_marginTop="40dp"
+        android:textSize="25dp"
+        android:gravity="center"/>
+
+    <Button
+        android:id="@+id/back_to_main_menu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="15dp"
+        android:clickable="true"
+        android:text="@string/back_to_main_menu" />
+
+        />
+</LinearLayout>

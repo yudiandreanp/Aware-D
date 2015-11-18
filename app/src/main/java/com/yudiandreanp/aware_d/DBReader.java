@@ -55,14 +55,37 @@ public class DBReader
         mDbHelper.close();
     }
 
-    public Cursor getTestData()
+    public Cursor getQuestion(int index)
     {
         try
         {
-            String sql ="SELECT question_text FROM Questions_Answers WHERE _id = 7";
+            String sql ="SELECT question_text FROM Questions_Answers WHERE _id = " + index;
 
             Cursor mCur = mDb.rawQuery(sql, null);
-            Log.e(TAG, "done here");
+            Log.e(TAG, "got the questions!");
+            if (mCur!=null)
+            {
+                mCur.moveToNext();
+            }
+            return mCur;
+        }
+
+        catch (SQLException mSQLException)
+        {
+            Log.e(TAG, "getTestData >>"+ mSQLException.toString());
+            throw mSQLException;
+        }
+    }
+
+
+    public Cursor getAnswer(int index)
+    {
+        try
+        {
+            String sql ="SELECT answer_text FROM Questions_Answers WHERE _id = " + index;
+
+            Cursor mCur = mDb.rawQuery(sql, null);
+            Log.e(TAG, "got the answer!");
             if (mCur!=null)
             {
                 mCur.moveToNext();

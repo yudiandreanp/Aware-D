@@ -1,10 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <string name="app_name">Aware-D</string>
-    <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
-    <string name="speech_prompt">Say something&#8230;</string>
+    <string name="action_settings">Settings</string>
+    <string name="aware_d">Welcome on Aware-D !\nLet\'s drive carefully.</string>
+    <string name="start_questions">Click the car to start</string>
+    <string name="explainations_to_answer_questions">Please answer clearly to the questions with one word</string>
+    <string name="stop_driving">Stop Driving</string>
+    <string name="dont_drive">Don\'t Drive !</string>
+    <string name="back_to_main_menu">Back to main menu</string>
+    <string name="blabla_dont_drive">You seem not to be \naware enough to drive. \nPlease wait, take some rest \nand retry in 30 minutes.</string>
+    <string name="enough_correct_answers">You got enough correct answers !</string>
+    <string name="drive_now">Drive now</string>
+    <string name="correct_response_popUp">Correct !</string>
+    <string name="wrong_response_popUp">Wrong !</string>
+    <string name="speech_prompt">Say something…</string>
     <string name="speech_not_supported">Sorry! Your device doesn\'t support speech input</string>
     <string name="tap_on_mic">Tap on mic to speak</string>
     <string name="sms_label">Latest SMS</string>

@@ -82,7 +82,8 @@ public class DataBaseHelper extends SQLiteOpenHelper {
      * Check if the database already exist to avoid re-copying the file each time you open the application.
      * @return true if it exists, false if it doesn't
      */
-    private boolean checkDataBase(){
+    private boolean checkDataBase()
+    {
 
         SQLiteDatabase checkDB = null;
 
@@ -92,7 +93,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
 
         }catch(SQLiteException e){
 
-            //database does't exist yet.
+            //database doesn't exist yet.
             Log.i(LOG_TAG, "DB doesn't exist");
 
         }
@@ -162,7 +163,8 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
+    {
 
     }
 
