@@ -10,15 +10,16 @@
     tools:context="com.yudiandreanp.aware_d.MainActivity">
 
     <TextView
-        android:id="@+id/txtSpeechInput"
+        android:id="@+id/infoText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="50dp"
         android:textColor="@color/white"
         android:textSize="15dp"
-        android:textStyle="normal" />
+        android:textStyle="normal"
+        />
 
     <ProgressBar
         android:id="@+id/progressBar1"
@@ -26,7 +27,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/txtSpeechInput"
+        android:layout_below="@+id/infoText"
         android:layout_marginTop="28dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp" />
@@ -36,7 +37,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="New ToggleButton"
-        android:id="@+id/toggleButton"
+        android:id="@+id/allowSpeak"
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
         android:layout_below="@+id/progressBar1"/>
@@ -48,14 +49,13 @@
         android:id="@+id/smsButton"
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
-        android:layout_below="@+id/toggleButton"/>
+        android:layout_below="@+id/allowSpeak"/>
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="60dp"
+        android:layout_marginBottom="10dp"
         android:gravity="center"
         android:orientation="vertical"
         android:id="@+id/linearLayout">
@@ -69,10 +69,10 @@
 
 
         <ToggleButton
-            android:id="@+id/btnSpeak2"
+            android:id="@+id/btnDrive"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/toggle_selector"
+            android:background="@drawable/ico_mic"
             android:textOff=""
             android:textOn=""/>
 
@@ -80,7 +80,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="tap to start"
+            android:text="tap to drive"
             android:textColor="@color/white"
             android:textSize="15dp"
             android:textStyle="normal" />

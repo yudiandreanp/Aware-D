@@ -6,6 +6,7 @@ import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 
@@ -91,6 +92,23 @@ public class TextSpeaker implements TextToSpeech.OnInitListener {
         }
     }
 
+    public void speakArray(ArrayList<String> arraySpeak){
+
+        // Speak only if the TTS is ready
+        // and the user has allowed speech
+
+        if(ready && allowed) {
+            tts.setSpeechRate(0.8f);
+            HashMap<String, String> hash = new HashMap<String,String>();
+            hash.put(TextToSpeech.Engine.KEY_PARAM_STREAM,
+                    String.valueOf(AudioManager.STREAM_NOTIFICATION));
+            hash.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID,
+                    "message ID");
+            for (String text : arraySpeak) {
+                tts.speak(text, TextToSpeech.QUEUE_ADD, hash);
+            }
+        }
+    }
 
     //access the status of utterance to pass to other class (MainActivity)
     public boolean isFinished()
