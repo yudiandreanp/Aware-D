@@ -1,15 +1,18 @@
 package com.yudiandreanp.aware_d;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Random;
 import java.lang.Integer;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.database.Cursor;
+import android.media.AudioManager;
 import android.os.CountDownTimer;
-import android.os.Handler;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -17,6 +20,7 @@ import android.speech.tts.TextToSpeech;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.speech.tts.UtteranceProgressListener;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -29,17 +33,23 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 import com.google.common.collect.Lists;
 
-
 /**
  * Created by yudiandrean on 10/28/2015.
  * This class does the recognition of the human voice, then convert it into
  * text, and also sends text to TextSpeaker class
  *
  */
-public class MainActivity extends Activity implements RecognitionListener {
+public class MainActivity extends Activity implements RecognitionListener, SpeechRecognizerManager.OnResultListener, SpeechRecognizerManager.OnErrorListener {
     private final int CHECK_CODE = 0x1;
     private final int MAX_INDEX = 21;
     private final int MIN_INDEX = 1;
+
+    private boolean ready = false;
+
+    private boolean allowed = false;
+
+    private boolean finished;
+
     private final int LONG_DURATION = 5000;
     private final int SHORT_DURATION = 1200;
     private TextView textInfoText;
@@ -53,12 +63,15 @@ public class MainActivity extends Activity implements RecognitionListener {
     private Button buttonSpeak, smsButton;
     private ArrayList<Integer> questionIndex, threeQuestionIndex;
     private int count, countThree; //counter for index
-    private String currentUserAnswer; //holds the spoken answer by the user
+    private String currentUserAnswer, trueThreeQuestion; //holds the spoken answer by the user
     private ArrayList <String> currentQuestionAnswer, firstThreeQuestions; //holds the current question and answer
     private GPSManager currentLocation;
     private SMSManager smsSender;
     private ToggleButton allowSpeakButton;
     private boolean isDriving;
+    private Session currentSession;
+    private TextToSpeech tts;
+    private SpeechRecognizerManager mSpeechRecognizerManager;
 
 
     @Override
@@ -70,7 +83,13 @@ public class MainActivity extends Activity implements RecognitionListener {
         countThree = 0;
         currentLocation= new GPSManager(MainActivity.this);
         smsSender = new SMSManager ();
-        createTextSpeaker(); //create the speaker instance
+        //createTextSpeaker(); //create the speaker instance
+        createTTS();
+
+        mSpeechRecognizerManager =new SpeechRecognizerManager(this);
+        mSpeechRecognizerManager.setOnResultListener(this);
+        mSpeechRecognizerManager.setOnErrorListener(this);
+
         textInfoText = (TextView) findViewById(R.id.infoText);
         buttonDriveNow = (Button) findViewById(R.id.btnDrive);
         progressBar = (ProgressBar) findViewById(R.id.progressBar1);
@@ -83,14 +102,15 @@ public class MainActivity extends Activity implements RecognitionListener {
         // hide the action bar
         //getActionBar().hide();
 
-        createSpeechRecognizer();
-        recognizerIntent = new Intent(RecognizerIntent.ACTION_VOICE_SEARCH_HANDS_FREE);
+        recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_SECURE, true);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-UK");
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+
+        createSpeechRecognizer();
+
         buttonSpeak = (Button) findViewById(R.id.buttonSpeak);
         buttonSpeak.setVisibility(View.INVISIBLE);
         allowSpeakButton = (ToggleButton) findViewById(R.id.allowSpeak);
@@ -103,12 +123,13 @@ public class MainActivity extends Activity implements RecognitionListener {
             @Override
             public void onCheckedChanged(CompoundButton view, boolean isChecked) {
                 if (isChecked) {
-                    createTextSpeaker();
+                    //createTextSpeaker();
+                    createTTS();
                     buttonSpeak.setVisibility(View.VISIBLE);
-                    textSpeaker.allow(true);
+                    ttsAllow(true);
                 } else {
                     buttonSpeak.setVisibility(View.INVISIBLE);
-                    textSpeaker.destroy();
+                    ttsDestroy();
                 }
             }
         };
@@ -119,26 +140,43 @@ public class MainActivity extends Activity implements RecognitionListener {
             public void onClick(View view) {
 
                 checkTTS();
-                speakQuestion(0);
+                tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
 
-                //used to make sure the tts has done speaking
-                if ((!textSpeaker.isFinished()) && textSpeaker.isReady())
-                {
-                    while(!textSpeaker.isFinished())
-                    {
-                        if (textSpeaker.isFinished()) {
-                            break;
-                        }
+                    @Override
+                    public void onDone(String utteranceId) {
+                        Log.i("Text Speaker", "Aku Done Speaking");
+                        MainActivity.this.runOnUiThread(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                triggerUserSpeaking();
+                            }
+                        });
+
                     }
-                }
 
-                if (textSpeaker.isFinished()) {
-                    triggerUserSpeaking();
-                    textSpeaker.setNotFinished();
-                }
+                    @Override
+                    public void onError(String utteranceId) {
+                        Log.i("Text Speaker", "Error Speaking");
+                    }
 
+                    @Override
+                    public void onStart(String utteranceId) {
+                        Log.i("Text Speaker", "Aku Started Speaking");
+                        finished = false;
+                    }
+
+
+                });
+                speakQuestion(0); //speak question with option 0, speaking when the user is driving
+                //TODO
+                //TODO
+                //TODO
+                //TODO
+                //TODO
             }
         });
+
 
         smsButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
@@ -160,7 +198,6 @@ public class MainActivity extends Activity implements RecognitionListener {
                 {
                     currentLocation.showSettingsAlert();
                 }
-
 
                 }
         });
@@ -184,7 +221,6 @@ public class MainActivity extends Activity implements RecognitionListener {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // TODO Auto-generated method stub
 
         switch(keyCode)
         {
@@ -267,11 +303,14 @@ public class MainActivity extends Activity implements RecognitionListener {
         textInfoText.setText(matches.get(0));
         currentUserAnswer = matches.get(0);
 
+        //TODO
         if (currentUserAnswer != null) {
             if (checkTrue()) {
                 textInfoText.setText("RIGHT");
+                trueThreeQuestion = "right";
             } else {
                 textInfoText.setText("WRONG");
+                trueThreeQuestion = "wrong";
             }
         }
 
@@ -282,7 +321,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        textSpeaker.destroy();
+        ttsDestroy();
     }
 
     //on dB of speaker's voice changed will change the progress bar
@@ -308,7 +347,7 @@ public class MainActivity extends Activity implements RecognitionListener {
     private void speakQuestion(int option) {
         //textSpeaker.speak(inputSpeak.getText().toString());
         currentQuestionAnswer = getQuestionAnswer(option);
-        textSpeaker.speak(currentQuestionAnswer.get(0));
+        ttsSpeak(currentQuestionAnswer.get(0));
     }
 
     //checks text-to-speech data
@@ -363,6 +402,12 @@ public class MainActivity extends Activity implements RecognitionListener {
         return true;
     }
 
+    private Calendar updateTime()
+    {
+        Calendar c = Calendar.getInstance();
+        return c;
+    }
+
 
     //reads question on randomized value
     private ArrayList<String> getQuestionAnswer(int option)
@@ -411,10 +456,63 @@ public class MainActivity extends Activity implements RecognitionListener {
     //creates the speaker instance
     private void createTextSpeaker()
     {
-        if (textSpeaker != null)
-        {textSpeaker.destroy();}
+        if (tts != null)
+        {
+            ttsDestroy();
+        }
         textSpeaker = new TextSpeaker(this);
     }
+
+    //creates the speaker instance
+    private void createTTS()
+    {
+        if (tts != null)
+        {
+            ttsDestroy();
+        }
+
+        tts=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+
+                    @Override
+                    public void onDone(String utteranceId) {
+                        Log.i("Text Speaker","Done Speaking");
+                        finished = true;
+                    }
+
+                    @Override
+                    public void onError(String utteranceId) {
+                        Log.i("Text Speaker","Error Speaking");
+                    }
+
+                    @Override
+                    public void onStart(String utteranceId) {
+                        Log.i("Text Speaker","Started Speaking");
+                        finished=false;
+                    }
+
+
+                });
+
+                if(status == TextToSpeech.SUCCESS) {
+                    // Change this to match your
+                    // locale
+                    tts.setLanguage(Locale.US);
+                    ready = true;
+
+                }
+
+                else
+                {
+                    ready = false;
+
+                }
+            }
+        });
+    }
+
 
     /**
      * creates an arraylist with the range of minimum index to the max index of questions in the database
@@ -493,9 +591,10 @@ public class MainActivity extends Activity implements RecognitionListener {
      * Triggers the RecognitionListener, prompting the user to speak
      */
     private void triggerUserSpeaking() {
-        createSpeechRecognizer();
+        //createSpeechRecognizer();
         setProgressVisible();
-        speechListener.startListening(recognizerIntent);
+        //speechListener.startListening(recognizerIntent);
+        mSpeechRecognizerManager.startRecognizing();
     }
 
     /**
@@ -507,6 +606,8 @@ public class MainActivity extends Activity implements RecognitionListener {
         builder.setTitle("Start Answering?");
         builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
+                currentSession = new Session(MainActivity.this, updateTime());
+                dialog.dismiss();
                 startQuestionBeforeDrive();
             }
         });
@@ -528,11 +629,11 @@ public class MainActivity extends Activity implements RecognitionListener {
         buttonDriveNow.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 if (!isDriving) {
-                    textSpeaker.speak(getString(R.string.before_driving1));
-                    textSpeaker.pause(SHORT_DURATION);
-                    textSpeaker.speak(getString(R.string.before_driving2));
-                    textSpeaker.pause(SHORT_DURATION);
-                    textSpeaker.speak(getString(R.string.before_driving3));
+                    ttsSpeak(getString(R.string.before_driving1));
+                    ttsPause(SHORT_DURATION);
+                    ttsSpeak(getString(R.string.before_driving2));
+                    ttsPause(SHORT_DURATION);
+                    ttsSpeak(getString(R.string.before_driving3));
                     Log.i("Blom Kelar", "Kok");
                     new CountDownTimer(14000, 1000) {
 
@@ -605,25 +706,169 @@ public class MainActivity extends Activity implements RecognitionListener {
      */
     private void startQuestionBeforeDrive()
     {
+        int right= 0;
+        int couunt = 0;
         Log.i("Ayoayo", "Mulaii");
         checkTTS();
-        speakQuestion(1);
+        speakThreeQuestions();
 
+//        while (right < 3)
+//        {
+//
+//
+//            if (trueThreeQuestion.toLowerCase().equals("right"))
+//            {
+//                right ++;
+//                count ++;
+//                trueThreeQuestion = null;
+//            }
+//            else
+//            {
+//                count ++;
+//            }
+//
+//            if (right < 3 && count == 3)
+//            {
+//                //can't drive
+//                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+//                builder.setTitle("You Can't Drive");
+//                builder.setMessage("Sorry, you are not aware enough to" +
+//                        " drive").setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+//                    public void onClick(DialogInterface dialog, int id) {
+//
+//                    }
+//            });
+//                AlertDialog dialog = builder.create();
+//                dialog.show();
+//                break;
+//
+//            }
+//        }
+
+    }
+
+    private void speakThreeQuestions()
+    {
+
+        speakQuestion(1); //speakQuestion with the option of initial three questions
+        //ttsSetNotFinished();
+        new CountDownTimer(1000, 1000) {
+
+            public void onTick(long millisUntilFinished) {
+                //nothing to do here *flies away*
+            }
+
+            public void onFinish() {
+                Log.i("Sudah Kelar", "Kok");
+            }
+        }.start();
         //used to make sure the tts has done speaking
-        if ((!textSpeaker.isFinished()) && textSpeaker.isReady())
-        {
-            while(!textSpeaker.isFinished())
-            {
-                if (textSpeaker.isFinished()) {
-                    break;
-                }
+//        if ((!ttsIsFinished()) && ttsIsReady())
+//        {
+//            while(!ttsIsFinished())
+//            {
+//                if (ttsIsFinished()) {
+//                    break;
+//                }
+//            }
+//        }
+//
+//        if (ttsIsFinished()) {
+//            triggerUserSpeaking();
+//            ttsSetNotFinished(); //set the speaker to not finish speaking again
+//        }
+
+        }
+
+
+
+    //TTS Methods
+
+    public boolean ttsIsAllowed(){
+        return allowed;
+    }
+
+    public void ttsAllow(boolean allowed){
+        this.allowed = allowed;
+    }
+
+    public void ttsSpeak(String text){
+
+        // Speak only if the TTS is ready
+        // and the user has allowed speech
+
+        if(ready && allowed) {
+            tts.setSpeechRate(0.8f);
+            HashMap<String, String> hash = new HashMap<String,String>();
+            hash.put(TextToSpeech.Engine.KEY_PARAM_STREAM,
+                    String.valueOf(AudioManager.STREAM_NOTIFICATION));
+            hash.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID,
+                    "message ID");
+            tts.speak(text, TextToSpeech.QUEUE_ADD, hash);
+
+        }
+    }
+
+    //access the status of utterance to pass to other class (MainActivity)
+    //public boolean ttsIsFinished()
+    //{
+    //    return finished;
+    //}
+
+    //access the tts readiness status
+    public boolean ttsIsReady()
+    {
+        return ready;
+    }
+
+    //reset the utterance status to not finished
+    //public void ttsSetNotFinished()
+    //{
+    //    finished = false;
+    //}
+
+    public void ttsPause(int duration){
+        tts.playSilence(duration, TextToSpeech.QUEUE_ADD, null);
+    }
+
+    // Free up resources
+    public void ttsDestroy(){
+        tts.shutdown();
+    }
+
+    //Decoupled for SpeechRecognizerManager
+    @Override
+    public void OnResult(ArrayList<String> results) {
+        Log.i(LOG_TAG, "onResults");
+        ArrayList<String> matches = results;
+        String text = "";
+        for (String result : matches)
+            text += result + "\n";
+
+        textInfoText.setText(matches.get(0));
+        currentUserAnswer = matches.get(0);
+
+        //TODO
+        if (currentUserAnswer != null) {
+            if (checkTrue()) {
+                textInfoText.setText("RIGHT");
+                trueThreeQuestion = "right";
+            } else {
+                textInfoText.setText("WRONG");
+                trueThreeQuestion = "wrong";
             }
         }
 
-        if (textSpeaker.isFinished()) {
-            triggerUserSpeaking();
-            textSpeaker.setNotFinished();
-        }
+        speechListener.destroy();
+
 
     }
+
+    @Override
+    public void OnError(int errorCode) {
+        String errorMessage = getErrorText(errorCode);
+        Log.d(LOG_TAG, "OnError " + errorMessage);
+        textInfoText.setText(errorMessage);
+    }
+
 }
