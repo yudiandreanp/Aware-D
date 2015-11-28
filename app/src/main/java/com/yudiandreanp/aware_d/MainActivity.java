@@ -39,31 +39,24 @@ import com.google.common.collect.Lists;
  * text, and also sends text to TextSpeaker class
  *
  */
-public class MainActivity extends Activity implements RecognitionListener, SpeechRecognizerManager.OnResultListener, SpeechRecognizerManager.OnErrorListener {
+public class MainActivity extends Activity implements SpeechRecognizerManager.OnResultListener, SpeechRecognizerManager.OnErrorListener {
     private final int CHECK_CODE = 0x1;
     private final int MAX_INDEX = 21;
     private final int MIN_INDEX = 1;
-
     private boolean ready = false;
 
     private boolean allowed = false;
 
-    private boolean finished;
-
-    private final int LONG_DURATION = 5000;
-    private final int SHORT_DURATION = 1200;
     private TextView textInfoText;
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private ProgressBar progressBar;
-    private SpeechRecognizer speechListener = null;
     private Intent recognizerIntent;
     private Button buttonDriveNow;
     private String LOG_TAG = "VoiceRecognitionActivity";
-    private TextSpeaker textSpeaker;
     private Button buttonSpeak, smsButton;
     private ArrayList<Integer> questionIndex, threeQuestionIndex;
-    private int count, countThree; //counter for index
-    private String currentUserAnswer, trueThreeQuestion; //holds the spoken answer by the user
+    private int count, countThree; //counter for index and right-tries of three questions
+    private String currentUserAnswer; //holds the spoken answer by the user
     private ArrayList <String> currentQuestionAnswer, firstThreeQuestions; //holds the current question and answer
     private GPSManager currentLocation;
     private SMSManager smsSender;
@@ -85,10 +78,6 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
         smsSender = new SMSManager ();
         //createTextSpeaker(); //create the speaker instance
         createTTS();
-
-        mSpeechRecognizerManager =new SpeechRecognizerManager(this);
-        mSpeechRecognizerManager.setOnResultListener(this);
-        mSpeechRecognizerManager.setOnErrorListener(this);
 
         textInfoText = (TextView) findViewById(R.id.infoText);
         buttonDriveNow = (Button) findViewById(R.id.btnDrive);
@@ -140,11 +129,11 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
             public void onClick(View view) {
 
                 checkTTS();
+
                 tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
 
                     @Override
                     public void onDone(String utteranceId) {
-                        Log.i("Text Speaker", "Aku Done Speaking");
                         MainActivity.this.runOnUiThread(new Runnable() {
 
                             @Override
@@ -163,17 +152,13 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
                     @Override
                     public void onStart(String utteranceId) {
                         Log.i("Text Speaker", "Aku Started Speaking");
-                        finished = false;
+
                     }
 
 
                 });
                 speakQuestion(0); //speak question with option 0, speaking when the user is driving
-                //TODO
-                //TODO
-                //TODO
-                //TODO
-                //TODO
+
             }
         });
 
@@ -208,7 +193,7 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
     @Override
     public void onResume() {
         super.onResume();
-        if (speechListener == null){
+        if (mSpeechRecognizerManager == null){
             createSpeechRecognizer();
         }
     }
@@ -216,7 +201,6 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
     @Override
     protected void onPause() {
         super.onPause();
-
     }
 
     @Override
@@ -251,72 +235,12 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
         }
     };
 
-    @Override
-    public void onBeginningOfSpeech() {
-        Log.i(LOG_TAG, "onBeginningOfSpeech");
-        progressBar.setIndeterminate(false);
-        progressBar.setMax(10);
-    }
-
-    @Override
-    public void onBufferReceived(byte[] buffer) {
-        Log.i(LOG_TAG, "onBufferReceived: " + buffer);
-    }
-
-    @Override
-    public void onEndOfSpeech() {
-        Log.i(LOG_TAG, "onEndOfSpeech");
-        progressBar.setIndeterminate(true);
-    }
-
-    @Override
-    public void onError(int errorCode) {
-        String errorMessage = getErrorText(errorCode);
-        Log.d(LOG_TAG, "OnError " + errorMessage);
-        textInfoText.setText(errorMessage);
-    }
-
-    @Override
-    public void onEvent(int arg0, Bundle arg1) {
-        Log.i(LOG_TAG, "onEvent");
-    }
-
-    @Override
-    public void onPartialResults(Bundle arg0) {
-        Log.i(LOG_TAG, "onPartialResults");
-    }
-
-    @Override
-    public void onReadyForSpeech(Bundle arg0) {
-        Log.i(LOG_TAG, "onReadyForSpeech");
-    }
-
-    @Override
-    public void onResults(Bundle results) {
-        Log.i(LOG_TAG, "onResults");
-        ArrayList<String> matches = results
-                .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        String text = "";
-        for (String result : matches)
-            text += result + "\n";
-
-        textInfoText.setText(matches.get(0));
-        currentUserAnswer = matches.get(0);
-
-        //TODO
-        if (currentUserAnswer != null) {
-            if (checkTrue()) {
-                textInfoText.setText("RIGHT");
-                trueThreeQuestion = "right";
-            } else {
-                textInfoText.setText("WRONG");
-                trueThreeQuestion = "wrong";
-            }
-        }
-
-        speechListener.destroy();
-    }
-
+//    @Override
+//    public void onBeginningOfSpeech() {
+//        Log.i(LOG_TAG, "onBeginningOfSpeech");
+//        progressBar.setIndeterminate(false);
+//        progressBar.setMax(10);
+//    }
 
     @Override
     protected void onDestroy() {
@@ -324,12 +248,12 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
         ttsDestroy();
     }
 
-    //on dB of speaker's voice changed will change the progress bar
-    @Override
-    public void onRmsChanged(float rmsdB) {
-        //Log.i(LOG_TAG, "onRmsChanged: " + rmsdB);
-        progressBar.setProgress((int) rmsdB);
-    }
+//    //on dB of speaker's voice changed will change the progress bar
+//    @Override
+//    public void onRmsChanged(float rmsdB) {
+//        //Log.i(LOG_TAG, "onRmsChanged: " + rmsdB);
+//        progressBar.setProgress((int) rmsdB);
+//    }
 
     //set visible the progress bar
     private void setProgressVisible() {
@@ -346,6 +270,32 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
     //speaks random questions
     private void speakQuestion(int option) {
         //textSpeaker.speak(inputSpeak.getText().toString());
+        tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+
+            @Override
+            public void onDone(String utteranceId) {
+                MainActivity.this.runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        triggerUserSpeaking();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String utteranceId) {
+                Log.i("Text Speaker", "Error Speaking");
+            }
+
+            @Override
+            public void onStart(String utteranceId) {
+
+            }
+
+
+        });
+
         currentQuestionAnswer = getQuestionAnswer(option);
         ttsSpeak(currentQuestionAnswer.get(0));
     }
@@ -357,43 +307,6 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
         startActivityForResult(check, CHECK_CODE);
     }
 
-
-    public static String getErrorText(int errorCode) {
-        String message;
-        switch (errorCode) {
-            case SpeechRecognizer.ERROR_AUDIO:
-                message = "Audio recording error";
-                break;
-//            case SpeechRecognizer.ERROR_CLIENT:
-//                message = "Client side error";
-//                break;
-            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                message = "Insufficient permissions";
-                break;
-            case SpeechRecognizer.ERROR_NETWORK:
-                message = "Network error";
-                break;
-            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-                message = "Network timeout";
-                break;
-            case SpeechRecognizer.ERROR_NO_MATCH:
-                message = "No match";
-                break;
-            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                message = "RecognitionService busy";
-                break;
-            case SpeechRecognizer.ERROR_SERVER:
-                message = "error from server";
-                break;
-            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                message = "No speech input";
-                break;
-            default:
-                message = "Didn't understand, please try again.";
-                break;
-        }
-        return message;
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -449,19 +362,12 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
     //creates the speech recognition instance
     private void createSpeechRecognizer()
     {
-        speechListener = SpeechRecognizer.createSpeechRecognizer(this);
-        speechListener.setRecognitionListener(this);
+        mSpeechRecognizerManager = new SpeechRecognizerManager(this);
+        mSpeechRecognizerManager.setOnResultListener(this);
+        mSpeechRecognizerManager.setOnErrorListener(this);
     }
 
-    //creates the speaker instance
-    private void createTextSpeaker()
-    {
-        if (tts != null)
-        {
-            ttsDestroy();
-        }
-        textSpeaker = new TextSpeaker(this);
-    }
+
 
     //creates the speaker instance
     private void createTTS()
@@ -479,7 +385,7 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
                     @Override
                     public void onDone(String utteranceId) {
                         Log.i("Text Speaker","Done Speaking");
-                        finished = true;
+
                     }
 
                     @Override
@@ -490,7 +396,7 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
                     @Override
                     public void onStart(String utteranceId) {
                         Log.i("Text Speaker","Started Speaking");
-                        finished=false;
+
                     }
 
 
@@ -629,31 +535,39 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
         buttonDriveNow.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 if (!isDriving) {
-                    ttsSpeak(getString(R.string.before_driving1));
-                    ttsPause(SHORT_DURATION);
-                    ttsSpeak(getString(R.string.before_driving2));
-                    ttsPause(SHORT_DURATION);
-                    ttsSpeak(getString(R.string.before_driving3));
-                    Log.i("Blom Kelar", "Kok");
-                    new CountDownTimer(14000, 1000) {
+                    ttsSpeak(getString(R.string.before_driving1) + "," +
+                             getString(R.string.before_driving2) + "," +
+                             getString(R.string.before_driving3));
 
-                        public void onTick(long millisUntilFinished) {
-                            //nothing to do here *flies away*
+                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+
+                        @Override
+                        public void onDone(String utteranceId) {
+                            MainActivity.this.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    createStartInitialDialog();
+                                }
+                            });
+
                         }
 
-                        public void onFinish() {
-                            createStartInitialDialog();
-                            Log.i("Sudah Kelar", "Kok");
+                        @Override
+                        public void onError(String utteranceId) {
+                            Log.i("Text Speaker", "Error Speaking");
                         }
-                    }.start();
+
+                        @Override
+                        public void onStart(String utteranceId) {
+
+                        }
 
 
-                    //ArrayList<String> arraySpeak = new ArrayList<>();
-                    //arraySpeak.add(getString(R.string.before_driving1));
-                    //arraySpeak.add(getString(R.string.before_driving2));
-                    //arraySpeak.add(getString(R.string.before_driving3));
+                    });
 
-                }
+
+                    }
             }
         });
     }
@@ -706,81 +620,10 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
      */
     private void startQuestionBeforeDrive()
     {
-        int right= 0;
-        int couunt = 0;
         Log.i("Ayoayo", "Mulaii");
         checkTTS();
-        speakThreeQuestions();
-
-//        while (right < 3)
-//        {
-//
-//
-//            if (trueThreeQuestion.toLowerCase().equals("right"))
-//            {
-//                right ++;
-//                count ++;
-//                trueThreeQuestion = null;
-//            }
-//            else
-//            {
-//                count ++;
-//            }
-//
-//            if (right < 3 && count == 3)
-//            {
-//                //can't drive
-//                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-//                builder.setTitle("You Can't Drive");
-//                builder.setMessage("Sorry, you are not aware enough to" +
-//                        " drive").setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-//                    public void onClick(DialogInterface dialog, int id) {
-//
-//                    }
-//            });
-//                AlertDialog dialog = builder.create();
-//                dialog.show();
-//                break;
-//
-//            }
-//        }
-
+        speakQuestion(1);
     }
-
-    private void speakThreeQuestions()
-    {
-
-        speakQuestion(1); //speakQuestion with the option of initial three questions
-        //ttsSetNotFinished();
-        new CountDownTimer(1000, 1000) {
-
-            public void onTick(long millisUntilFinished) {
-                //nothing to do here *flies away*
-            }
-
-            public void onFinish() {
-                Log.i("Sudah Kelar", "Kok");
-            }
-        }.start();
-        //used to make sure the tts has done speaking
-//        if ((!ttsIsFinished()) && ttsIsReady())
-//        {
-//            while(!ttsIsFinished())
-//            {
-//                if (ttsIsFinished()) {
-//                    break;
-//                }
-//            }
-//        }
-//
-//        if (ttsIsFinished()) {
-//            triggerUserSpeaking();
-//            ttsSetNotFinished(); //set the speaker to not finish speaking again
-//        }
-
-        }
-
-
 
     //TTS Methods
 
@@ -848,27 +691,95 @@ public class MainActivity extends Activity implements RecognitionListener, Speec
         textInfoText.setText(matches.get(0));
         currentUserAnswer = matches.get(0);
 
-        //TODO
-        if (currentUserAnswer != null) {
-            if (checkTrue()) {
-                textInfoText.setText("RIGHT");
-                trueThreeQuestion = "right";
-            } else {
-                textInfoText.setText("WRONG");
-                trueThreeQuestion = "wrong";
+        if (currentSession.getThreeTries() < 3)
+        {
+            if (currentUserAnswer != null) {
+                if (checkTrue()) {
+
+                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+
+                        @Override
+                        public void onDone(String utteranceId) {
+                            speakQuestion(1);
+                        }
+
+                        @Override
+                        public void onError(String utteranceId) {
+                            Log.i("Text Speaker", "Error Speaking");
+                        }
+
+                        @Override
+                        public void onStart(String utteranceId) {
+
+                        }
+
+
+                    });
+
+                    ttsSpeak("You are right");
+
+                    textInfoText.setText("RIGHT");
+                } else {
+                    textInfoText.setText("WRONG");
+                }
             }
         }
 
-        speechListener.destroy();
+        //TODO teamwork with three questions
+        if (currentUserAnswer != null) {
+            if (checkTrue()) {
+                textInfoText.setText("RIGHT");
+            } else {
+                textInfoText.setText("WRONG");
+            }
+        }
 
+        mSpeechRecognizerManager.destroy();
 
     }
 
     @Override
     public void OnError(int errorCode) {
         String errorMessage = getErrorText(errorCode);
-        Log.d(LOG_TAG, "OnError " + errorMessage);
+        Log.d(LOG_TAG, "OnError" + errorMessage);
         textInfoText.setText(errorMessage);
+    }
+
+    public static String getErrorText(int errorCode) {
+        String message;
+        switch (errorCode) {
+            case SpeechRecognizer.ERROR_AUDIO:
+                message = "Audio recording error";
+                break;
+            case SpeechRecognizer.ERROR_CLIENT:
+                message = "Client side error";
+                break;
+            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                message = "Insufficient permissions";
+                break;
+            case SpeechRecognizer.ERROR_NETWORK:
+                message = "Network error";
+                break;
+            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
+                message = "Network timeout";
+                break;
+            case SpeechRecognizer.ERROR_NO_MATCH:
+                message = "No match";
+                break;
+            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                message = "RecognitionService busy";
+                break;
+            case SpeechRecognizer.ERROR_SERVER:
+                message = "error from server";
+                break;
+            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                message = "No speech input";
+                break;
+            default:
+                message = "Didn't understand, please try again.";
+                break;
+        }
+        return message;
     }
 
 }
