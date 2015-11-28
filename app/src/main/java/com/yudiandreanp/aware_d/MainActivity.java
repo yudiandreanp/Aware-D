@@ -270,6 +270,7 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
     //speaks random questions
     private void speakQuestion(int option) {
         //textSpeaker.speak(inputSpeak.getText().toString());
+
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
 
             @Override
@@ -278,6 +279,7 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
 
                     @Override
                     public void run() {
+                        textInfoText.setText("");
                         triggerUserSpeaking();
                     }
                 });
@@ -597,7 +599,7 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
     private int getCurrentThreeQuestionIndex()
     {
         int index;
-        if (countThree == 2) // if the arraylist had been iterated MAX_INDEX times
+        if (countThree >= 2) // if the arraylist had been iterated MAX_INDEX times
         {
             threeQuestionIndex = shuffleIndex(threeQuestionIndex);
             count = 0;
@@ -641,7 +643,7 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
         // and the user has allowed speech
 
         if(ready && allowed) {
-            tts.setSpeechRate(0.8f);
+            tts.setSpeechRate(0.7f);
             HashMap<String, String> hash = new HashMap<String,String>();
             hash.put(TextToSpeech.Engine.KEY_PARAM_STREAM,
                     String.valueOf(AudioManager.STREAM_NOTIFICATION));
@@ -691,51 +693,78 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
         textInfoText.setText(matches.get(0));
         currentUserAnswer = matches.get(0);
 
-        if (currentSession.getThreeTries() < 3)
+        Log.i("ThreeTries Tries",Integer.toString(currentSession.getThreeTries()));
+        Log.i("ThreeTries Right",Integer.toString(currentSession.getThreeRight()));
+
+        if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() < 3)
         {
             if (currentUserAnswer != null) {
+                tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                    @Override
+                    public void onDone(String utteranceId) {
+                        speakQuestion(1);
+                    }
+                    @Override
+                    public void onError(String utteranceId) {
+                        Log.i("Text Speaker", "Error Speaking");
+                    }
+                    @Override
+                    public void onStart(String utteranceId) {
+                    }
+                });
                 if (checkTrue()) {
+                    currentSession.incrementThreeRight();
+                    if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() <= 2) {
+                        ttsSpeak("You are right, now the next question");
+                        textInfoText.setText("RIGHT");
+                    }
+                    else if  (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2)
+                    {
 
-                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                    }
 
-                        @Override
-                        public void onDone(String utteranceId) {
-                            speakQuestion(1);
-                        }
-
-                        @Override
-                        public void onError(String utteranceId) {
-                            Log.i("Text Speaker", "Error Speaking");
-                        }
-
-                        @Override
-                        public void onStart(String utteranceId) {
-
-                        }
-
-
-                    });
-
-                    ttsSpeak("You are right");
-
-                    textInfoText.setText("RIGHT");
                 } else {
+                    currentSession.incrementThreeTries();
+                    ttsSpeak("Wrong, please answer carefully. Now the next question");
                     textInfoText.setText("WRONG");
                 }
             }
         }
 
-        //TODO teamwork with three questions
-        if (currentUserAnswer != null) {
-            if (checkTrue()) {
-                textInfoText.setText("RIGHT");
-            } else {
-                textInfoText.setText("WRONG");
-            }
+        if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2 && currentSession.getThreeRight() >= 2)
+        {
+            currentSession.setBooleanStatusThree();
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                @Override
+                public void onDone(String utteranceId) {
+                    //TODO add timer for next question when driving
+                }
+
+                @Override
+                public void onError(String utteranceId) {
+                    Log.i("Text Speaker", "Error Speaking");
+                }
+
+                @Override
+                public void onStart(String utteranceId) {
+                }
+            });
+
+            ttsSpeak("You have correctly answered 3 questions to drive, now you can drive safely." +
+                    "I will ask you questions every 10 minutes while you are driving. Please drive carefully and keep" +
+                    "focus on the road. Thank you for your cooperation");
         }
 
-        mSpeechRecognizerManager.destroy();
-
+        //TODO teamwork with three questions
+        //TODO teamwork with three questions
+//        if (currentUserAnswer != null) {
+//            if (checkTrue()) {
+//                textInfoText.setText("RIGHT");
+//            } else {
+//                textInfoText.setText("WRONG");
+//            }
+//        }
+        Log.i("ThreeTries","Doesn't get here");
     }
 
     @Override

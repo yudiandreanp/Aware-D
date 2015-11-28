@@ -19,6 +19,7 @@ public class Session {
     private int threeRight, threeTries, errorTimes, mainRight;
     private ArrayList <Integer> mQuestionAskedArray; //index of asked question
     private ArrayList <String> mUserAnswerArray; //Collection of users' answers
+    private boolean statusThreeQuestions; //check if the session is in the initial questions mode or the driving mode
 
     public Session(Context context, Calendar startTime)
     {
@@ -26,6 +27,7 @@ public class Session {
         mStartTime = startTime;
         threeRight = 0;
         threeTries = 0;
+        statusThreeQuestions = true;
     }
 
     public void incrementThreeTries()
@@ -33,11 +35,34 @@ public class Session {
         threeTries++;
     }
 
+    public void incrementThreeRight()
+    {
+        threeRight++;
+        threeTries++;
+    }
+
+    public int getThreeRight()
+    {
+        return threeRight;
+    }
+
     public int getThreeTries()
     {
         return threeTries;
     }
 
+    public void setBooleanStatusThree()
+    {
+        if (statusThreeQuestions)
+        {
+            statusThreeQuestions = false;
+        }
+        else
+        {
+            statusThreeQuestions = true;
+        }
+    }
 
+    public boolean getBooleanStatusThree(){return statusThreeQuestions;}
 
 }
