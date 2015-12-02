@@ -24,5 +24,7 @@
     <string name="before_driving1">Before you can drive, I am going to ask you 3 questions</string>
     <string name="before_driving2">and You have to correctly answer all the 3 questions</string>
     <string name="before_driving3">Are you ready?</string>
+    <string name="set_users_name"> Set user\'s name</string>
+    <string name="set_contacts"> Set Contact Number</string>
 
 </resources>

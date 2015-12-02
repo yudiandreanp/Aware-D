@@ -20,12 +20,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.speech.tts.UtteranceProgressListener;
 import android.support.v7.app.AppCompatActivity;
+import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -54,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
     private Button smsButton;
     private ArrayList<Integer> questionIndex, threeQuestionIndex;
     private int count, countThree, errorCount; //counter for index and right-tries of three questions
-    private String currentUserAnswer, latitude, longitude, phoneNumber; //holds the spoken answer by the user
+    private String currentUserAnswer, latitude, longitude, phoneNumber, m_text; //holds the spoken answer by the user
     private ArrayList <String> currentQuestionAnswer; //holds the current question and answer
     private GPSManager currentLocation;
     private SMSManager smsSender;
@@ -222,8 +226,76 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
+        getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.set_users_name:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Username");
+                // Set up the input
+                final EditText input = new EditText(this);
+                // Specify the type of input expected;
+                input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE);
+                builder.setView(input);
+
+                // Set up the buttons
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        m_text = input.getText().toString();
+                    }
+                });
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+
+                builder.show();
+                return true;
+
+            case R.id.set_contacts:
+                // showdelete();
+                final AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+                LinearLayout lila1= new LinearLayout(this);
+                lila1.setOrientation(LinearLayout.VERTICAL);
+                final EditText input_name = new EditText(this);
+                final EditText input_number = new EditText(this);
+                input_name.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
+                input_number.setInputType(InputType.TYPE_CLASS_PHONE);
+                input_name.setHint("Contact Name...");
+                input_number.setHint("Phone Number...");
+                lila1.addView(input_name);
+                lila1.addView(input_number);
+                alert.setView(lila1);
+                alert.setTitle("New Contact");
+
+                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        String name_contact = input_name.getText().toString().trim();
+                        String number_contact = input_number.getText().toString().trim();
+                        Toast.makeText(getApplicationContext(), name_contact + " " + number_contact, Toast.LENGTH_SHORT).show();
+                    }
+                });
+                alert.setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                dialog.cancel();
+                            }
+                        });
+                alert.show();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     private Calendar updateTime()
@@ -334,7 +406,6 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
         for (int i = min; i <= max; i++) {
             list.add(i);
         }
-
         return list;
     }
 

@@ -16,7 +16,7 @@ public class DrivingSession {
     private final Context mContext;
     private Calendar mStartTime, mEndTime;
     private Location mAlertedLocation;
-    private int threeRight, threeTries, errorTimes, mainRight;
+    private int threeRight, threeTries;
     private ArrayList <Integer> mQuestionAskedArray; //index of asked question
     private ArrayList <String> mUserAnswerArray; //Collection of users' answers
     private ArrayList <Boolean> mUserResults, mUserProgress; //Collection of users' answers
@@ -113,7 +113,43 @@ public class DrivingSession {
         mUserAnswerArray.add(userAnswer);
     }
 
+    public int getQuestionAskedNumber()
+    {
+        return mQuestionAskedArray.size();
+    }
 
+    public int getRightlyAnswered()
+    {
+        int count = 0;
+        for(boolean bool: mUserResults){
+            if (bool)
+            {
+                count++;
+            }
+        }
+        return count;
+    }
 
+    public Calendar getStartTime()
+    {
+        return mStartTime;
+    }
+
+    public Calendar getEndTime()
+    {
+        return mEndTime;
+    }
+
+    public boolean getInitialResults()
+    {
+        if (threeRight >= 3)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
 }

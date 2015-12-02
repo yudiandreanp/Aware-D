@@ -21,13 +21,11 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     //The Android's default system path of your application database.
     private static String DB_PATH = "";
     private String LOG_TAG = "DatabaseHelper";
-
     private static String DB_NAME = "question_answer.sqlite";
-
+    private static String TABLE_CONTACTS = "contacts";
+    private static String TABLE_USERNAME = "username";
     private SQLiteDatabase myDataBase;
-
     private final Context myContext;
-
     /**
      * Constructor
      * Takes and keeps a reference of the passed context in order to access to the application assets and resources.
@@ -51,31 +49,22 @@ public class DataBaseHelper extends SQLiteOpenHelper {
      * Creates a empty database on the system and rewrites it with your own database.
      * */
     public void createDataBase() throws IOException {
-
         boolean dbExist = checkDataBase();
-
         if(dbExist){
             Log.i(LOG_TAG, "DB already exist");
             //do nothing - database already exist
         }else{
-
             //By calling this method and empty database will be created into the default system path
             //of your application so we are gonna be able to overwrite that database with our database.
             this.getReadableDatabase();
-
             try {
-
                 copyDataBase();
                 Log.i(LOG_TAG, "DB Copied");
-
             } catch (IOException e) {
-
                 Log.i(LOG_TAG, "Error copying database");
                 throw new Error("Error copying database!");
-
             }
         }
-
     }
 
     /**
@@ -116,15 +105,10 @@ public class DataBaseHelper extends SQLiteOpenHelper {
 
         //Open your local db as the input stream
         InputStream myInput = myContext.getAssets().open(DB_NAME);
-        Log.i(LOG_TAG, "cobacoba");
-
-
         // Path to the just created empty db
         String outFileName = DB_PATH + DB_NAME;
-
         //Open the empty db as the output stream
         OutputStream myOutput = new FileOutputStream(outFileName);
-
         //transfer bytes from the inputfile to the outputfile
         byte[] buffer = new byte[1024];
         int length;
@@ -136,7 +120,6 @@ public class DataBaseHelper extends SQLiteOpenHelper {
         myOutput.flush();
         myOutput.close();
         myInput.close();
-
     }
 
     public void openDataBase() throws SQLException {
@@ -149,17 +132,21 @@ public class DataBaseHelper extends SQLiteOpenHelper {
 
     @Override
     public synchronized void close() {
-
         if(myDataBase != null)
             myDataBase.close();
-
         super.close();
-
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-
+        String CREATE_CONTACTS_TABLE = "CREATE TABLE " + TABLE_CONTACTS + "("
+                + "id" + " INTEGER PRIMARY KEY," + "full_name" + " TEXT,"
+                + "phone" + " TEXT" + ")";
+        String CREATE_USERNAME_TABLE = "CREATE TABLE " + TABLE_USERNAME + "("
+                + "id" + " INTEGER PRIMARY KEY," + "full_name" + " TEXT,"
+                + ")";
+        db.execSQL(CREATE_CONTACTS_TABLE);
+        db.execSQL(CREATE_USERNAME_TABLE);
     }
 
     @Override
