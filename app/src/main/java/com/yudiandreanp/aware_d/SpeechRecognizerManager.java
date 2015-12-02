@@ -68,7 +68,6 @@ public class SpeechRecognizerManager {
 
         if (mGoogleSpeechRecognizer != null) {
             mGoogleSpeechRecognizer.cancel();
-            ;
             mGoogleSpeechRecognizer.destroy();
         }
 

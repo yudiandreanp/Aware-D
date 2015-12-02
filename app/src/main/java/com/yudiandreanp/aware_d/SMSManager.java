@@ -1,10 +1,8 @@
 package com.yudiandreanp.aware_d;
 
-import android.content.Context;
-import android.content.IntentFilter;
+
 import android.telephony.SmsManager;
 import android.util.Log;
-import android.widget.Toast;
 
 /**
  * Created by yudiandrean on 11/16/2015.

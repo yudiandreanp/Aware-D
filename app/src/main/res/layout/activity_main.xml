@@ -33,15 +33,6 @@
         android:paddingRight="10dp" />
 
 
-    <ToggleButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="New ToggleButton"
-        android:id="@+id/allowSpeak"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@+id/progressBar1"/>
-
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -49,7 +40,7 @@
         android:id="@+id/smsButton"
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
-        android:layout_below="@+id/allowSpeak"/>
+        android:layout_below="@+id/progressBar1"/>
 
     <LinearLayout
         android:layout_width="fill_parent"
@@ -59,13 +50,6 @@
         android:gravity="center"
         android:orientation="vertical"
         android:id="@+id/linearLayout">
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="SPEAK"
-            android:id="@+id/buttonSpeak"/>
-
 
 
         <ToggleButton

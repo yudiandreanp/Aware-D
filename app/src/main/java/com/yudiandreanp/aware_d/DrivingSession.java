@@ -11,7 +11,7 @@ import java.util.Calendar;
 /**
  * Created by yudiandrean on 11/14/2015.
  */
-public class Session {
+public class DrivingSession {
 
     private final Context mContext;
     private Calendar mStartTime, mEndTime;
@@ -19,15 +19,18 @@ public class Session {
     private int threeRight, threeTries, errorTimes, mainRight;
     private ArrayList <Integer> mQuestionAskedArray; //index of asked question
     private ArrayList <String> mUserAnswerArray; //Collection of users' answers
+    private ArrayList <Boolean> mUserResults, mUserProgress; //Collection of users' answers
     private boolean statusThreeQuestions; //check if the session is in the initial questions mode or the driving mode
 
-    public Session(Context context, Calendar startTime)
+    public DrivingSession(Context context, Calendar startTime)
     {
         this.mContext = context;
         mStartTime = startTime;
         threeRight = 0;
         threeTries = 0;
         statusThreeQuestions = true;
+        mUserResults = new ArrayList<>();
+        mUserProgress = new ArrayList<>();
     }
 
     public void incrementThreeTries()
@@ -39,6 +42,12 @@ public class Session {
     {
         threeRight++;
         threeTries++;
+    }
+
+    public void resetThree()
+    {
+        threeTries = 0;
+        threeRight = 0;
     }
 
     public int getThreeRight()
@@ -64,5 +73,39 @@ public class Session {
     }
 
     public boolean getBooleanStatusThree(){return statusThreeQuestions;}
+
+    public void endTime(Calendar endTime)
+    {
+        mEndTime = endTime;
+    }
+
+
+    public void addUserResults (boolean foo)
+    {
+        mUserResults.add(foo);
+    }
+
+    public ArrayList<Boolean> getUserResults()
+    {
+        return mUserResults;
+    }
+
+    public void addUserProgress (boolean foo)
+    {
+        mUserProgress.add(foo);
+    }
+
+    public ArrayList<Boolean> getUserProgress()
+    {
+        return mUserProgress;
+    }
+
+    public void setAlertedLocation (Location l)
+    {
+        mAlertedLocation = l;
+    }
+
+
+
 
 }

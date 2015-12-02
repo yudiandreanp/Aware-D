@@ -7,64 +7,61 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Random;
 import java.lang.Integer;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.database.Cursor;
 import android.media.AudioManager;
-import android.os.CountDownTimer;
-import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.speech.tts.UtteranceProgressListener;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.ToggleButton;
+
 import com.google.common.collect.Lists;
 
 /**
  * Created by yudiandrean on 10/28/2015.
  * This class does the recognition of the human voice, then convert it into
  * text, and also sends text to TextSpeaker class
- *
  */
-public class MainActivity extends Activity implements SpeechRecognizerManager.OnResultListener, SpeechRecognizerManager.OnErrorListener {
+
+public class MainActivity extends ActionBarActivity implements SpeechRecognizerManager.OnResultListener, SpeechRecognizerManager.OnErrorListener {
     private final int CHECK_CODE = 0x1;
-    private final int MAX_INDEX = 21;
+    private final int MAX_INDEX = 30;
     private final int MIN_INDEX = 1;
     private boolean ready = false;
-
     private boolean allowed = false;
-
     private TextView textInfoText;
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private ProgressBar progressBar;
     private Intent recognizerIntent;
     private Button buttonDriveNow;
     private String LOG_TAG = "VoiceRecognitionActivity";
-    private Button buttonSpeak, smsButton;
+    private Button smsButton;
     private ArrayList<Integer> questionIndex, threeQuestionIndex;
-    private int count, countThree; //counter for index and right-tries of three questions
-    private String currentUserAnswer; //holds the spoken answer by the user
+    private int count, countThree, errorCount; //counter for index and right-tries of three questions
+    private String currentUserAnswer, latitude, longitude, phoneNumber; //holds the spoken answer by the user
     private ArrayList <String> currentQuestionAnswer, firstThreeQuestions; //holds the current question and answer
     private GPSManager currentLocation;
     private SMSManager smsSender;
-    private ToggleButton allowSpeakButton;
     private boolean isDriving;
-    private Session currentSession;
+    private DrivingSession currentSession;
     private TextToSpeech tts;
     private SpeechRecognizerManager mSpeechRecognizerManager;
+    private TimerTask task;
 
 
     @Override
@@ -78,7 +75,6 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
         smsSender = new SMSManager ();
         //createTextSpeaker(); //create the speaker instance
         createTTS();
-
         textInfoText = (TextView) findViewById(R.id.infoText);
         buttonDriveNow = (Button) findViewById(R.id.btnDrive);
         progressBar = (ProgressBar) findViewById(R.id.progressBar1);
@@ -88,79 +84,18 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
         questionIndex = shuffleIndex(questionIndex);
         threeQuestionIndex = createThreeQuestionIndex();
 
-        // hide the action bar
-        //getActionBar().hide();
-
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US");
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
-
         createSpeechRecognizer();
 
-        buttonSpeak = (Button) findViewById(R.id.buttonSpeak);
-        buttonSpeak.setVisibility(View.INVISIBLE);
-        allowSpeakButton = (ToggleButton) findViewById(R.id.allowSpeak);
-        CompoundButton.OnCheckedChangeListener toggleListener;
-
         isDriving = false;
+        createTTS();
+        ttsAllow(true);
         startInitialQuestion();
-
-        toggleListener = new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton view, boolean isChecked) {
-                if (isChecked) {
-                    //createTextSpeaker();
-                    createTTS();
-                    buttonSpeak.setVisibility(View.VISIBLE);
-                    ttsAllow(true);
-                } else {
-                    buttonSpeak.setVisibility(View.INVISIBLE);
-                    ttsDestroy();
-                }
-            }
-        };
-
-        allowSpeakButton.setOnCheckedChangeListener(toggleListener);
-
-        buttonSpeak.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View view) {
-
-                checkTTS();
-
-                tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-
-                    @Override
-                    public void onDone(String utteranceId) {
-                        MainActivity.this.runOnUiThread(new Runnable() {
-
-                            @Override
-                            public void run() {
-                                triggerUserSpeaking();
-                            }
-                        });
-
-                    }
-
-                    @Override
-                    public void onError(String utteranceId) {
-                        Log.i("Text Speaker", "Error Speaking");
-                    }
-
-                    @Override
-                    public void onStart(String utteranceId) {
-                        Log.i("Text Speaker", "Aku Started Speaking");
-
-                    }
-
-
-                });
-                speakQuestion(0); //speak question with option 0, speaking when the user is driving
-
-            }
-        });
 
 
         smsButton.setOnClickListener(new View.OnClickListener() {
@@ -514,7 +449,7 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
         builder.setTitle("Start Answering?");
         builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                currentSession = new Session(MainActivity.this, updateTime());
+                currentSession = new DrivingSession(MainActivity.this, updateTime());
                 dialog.dismiss();
                 startQuestionBeforeDrive();
             }
@@ -602,15 +537,15 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
         if (countThree >= 2) // if the arraylist had been iterated MAX_INDEX times
         {
             threeQuestionIndex = shuffleIndex(threeQuestionIndex);
-            count = 0;
-            index = threeQuestionIndex.get(count);
-            count++;
+            countThree = 0;
+            index = threeQuestionIndex.get(countThree);
+            countThree++;
             return index;
         }
         else
         {
-            index = threeQuestionIndex.get(count);
-            count++;
+            index = threeQuestionIndex.get(countThree);
+            countThree++;
             return index;
         }
 
@@ -696,8 +631,11 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
         Log.i("ThreeTries Tries",Integer.toString(currentSession.getThreeTries()));
         Log.i("ThreeTries Right",Integer.toString(currentSession.getThreeRight()));
 
+
+        //In initial questions mode
         if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() < 3)
         {
+
             if (currentUserAnswer != null) {
                 tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                     @Override
@@ -712,7 +650,8 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
                     public void onStart(String utteranceId) {
                     }
                 });
-                if (checkTrue()) {
+
+                if (checkTrue()){
                     currentSession.incrementThreeRight();
                     if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() <= 2) {
                         ttsSpeak("You are right, now the next question");
@@ -720,10 +659,11 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
                     }
                     else if  (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2)
                     {
-
+                        //do nothing
                     }
 
-                } else {
+                }
+                else {
                     currentSession.incrementThreeTries();
                     ttsSpeak("Wrong, please answer carefully. Now the next question");
                     textInfoText.setText("WRONG");
@@ -731,13 +671,152 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
             }
         }
 
-        if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2 && currentSession.getThreeRight() >= 2)
+        //checking if the user can't answer all three
+        if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() >= 3 && currentSession.getThreeRight() <= 2)
+        {
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                @Override
+                public void onDone(String utteranceId) {
+                    //do nothing
+                }
+
+                @Override
+                public void onError(String utteranceId) {
+                    Log.i("Text Speaker", "Error Speaking");
+                }
+
+                @Override
+                public void onStart(String utteranceId) {
+                }
+            });
+
+            ttsSpeak("You cannot answer all three questions, please try again by tapping the 'Drive Now' Button");
+            currentSession.resetThree(); //reset the three questions statistics
+
+        }
+
+        //driving state here
+        if (!currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2 && currentSession.getThreeRight() > 2)
+        {
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                @Override
+                public void onDone(String utteranceId) {
+
+
+                    task = new TimerTask() {
+                        public void run() {
+                            speakQuestion(0);
+                        }
+                    };
+                    Timer timer = new Timer();
+                    timer.schedule(task, 9000);
+                }
+
+                @Override
+                public void onError(String utteranceId) {
+                    Log.i("Text Speaker", "Error Speaking");
+                }
+
+                @Override
+                public void onStart(String utteranceId) {
+                }
+            });
+
+            if (currentUserAnswer != null) {
+                if (checkTrue()) {
+                    ttsSpeak("You are right, now wait for next question");
+                    currentSession.addUserResults(true);
+                    currentSession.addUserProgress(true);
+                } else {
+                    ttsSpeak("Wrong, please answer carefully. Now wait for the next question");
+                    currentSession.addUserResults(false);
+                    currentSession.addUserProgress(false);
+                }
+            }
+        }
+
+        //check the user's progress every 6 questions
+        if (currentSession.getUserProgress().size() > 1)
+        {
+            if (currentSession.getUserResults().size() % 6 == 0) {
+                int occurrences = Collections.frequency(currentSession.getUserProgress(), false);
+                if (occurrences >= 3)
+                {
+                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                        @Override
+                        public void onDone(String utteranceId) {
+                            task = new TimerTask() {
+                                public void run() {
+                                    double dLatitude;
+                                    double dLongitude;
+
+                                    if(currentLocation.canGetLocation())
+                                    {
+                                        dLatitude = currentLocation.getLatitude();
+                                        dLongitude = currentLocation.getLongitude();
+                                        Toast.makeText(getApplicationContext(), "Your Location is - \nLat: " + dLatitude + "\nLong: " + dLongitude, Toast.LENGTH_LONG).show();
+                                        latitude = String.valueOf(dLatitude);
+                                        longitude = String.valueOf(dLongitude);
+                                        phoneNumber = "+6289693959600";
+
+                                    }
+                                    else
+                                    {
+                                        currentLocation.showSettingsAlert();
+                                    }
+
+                                    MainActivity.this.runOnUiThread(new Runnable() {
+
+                                        @Override
+                                        public void run() {
+                                            task = new TimerTask() {
+                                                public void run() {
+                                                    smsSender.sendLocationSMS(phoneNumber, latitude, longitude);
+                                                }
+                                            };
+                                            Timer timer2 = new Timer();
+                                            timer2.schedule(task, 5000);
+
+                                        }
+                                    });
+                                }
+                            };
+                            Timer timer = new Timer();
+                            timer.schedule(task, 10);
+                        }
+
+                        @Override
+                        public void onError(String utteranceId) {
+                            Log.i("Text Speaker", "Error Speaking");
+                        }
+
+                        @Override
+                        public void onStart(String utteranceId) {
+                        }
+                    });
+                    ttsSpeak("You exceeded the wrong answer limit. Please stop driving now. I am going message " +
+                            "your chosen contact, containing your current location");
+
+                }
+            }
+        }
+
+
+        //if user answer all 3 correctly
+        if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2 && currentSession.getThreeRight() > 2)
         {
             currentSession.setBooleanStatusThree();
             tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                 @Override
                 public void onDone(String utteranceId) {
-                    //TODO add timer for next question when driving
+
+                    task = new TimerTask(){
+                        public void run() {
+                            speakQuestion(0);
+                        }
+                    };
+                    Timer timer = new Timer();
+                    timer.schedule(task, 9000);
                 }
 
                 @Override
@@ -751,27 +830,121 @@ public class MainActivity extends Activity implements SpeechRecognizerManager.On
             });
 
             ttsSpeak("You have correctly answered 3 questions to drive, now you can drive safely." +
-                    "I will ask you questions every 10 minutes while you are driving. Please drive carefully and keep" +
+                    "I will ask you questions every 5 minutes while you are driving. Please drive carefully and keep" +
                     "focus on the road. Thank you for your cooperation");
         }
 
-        //TODO teamwork with three questions
-        //TODO teamwork with three questions
-//        if (currentUserAnswer != null) {
-//            if (checkTrue()) {
-//                textInfoText.setText("RIGHT");
-//            } else {
-//                textInfoText.setText("WRONG");
-//            }
-//        }
-        Log.i("ThreeTries","Doesn't get here");
     }
 
     @Override
     public void OnError(int errorCode) {
         String errorMessage = getErrorText(errorCode);
-        Log.d(LOG_TAG, "OnError" + errorMessage);
+        Log.d(LOG_TAG, "OnError " + errorMessage);
         textInfoText.setText(errorMessage);
+
+        if (errorCode == SpeechRecognizer.ERROR_NO_MATCH) {
+            //in the initial three questions error
+
+                tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                    @Override
+                    public void onDone(String utteranceId) {
+                        errorCount++;
+                        task = new TimerTask() {
+                            public void run() {
+                                MainActivity.this.runOnUiThread(new Runnable() {
+
+                                    @Override
+                                    public void run() {
+                                        mSpeechRecognizerManager.destroy();
+                                        createSpeechRecognizer();
+                                        ttsDestroy();
+                                        createTTS();
+                                        task = new TimerTask() {
+                                            public void run() {
+                                                if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() < 3)
+                                                {speakQuestion(1);}
+                                                if (!currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2 && currentSession.getThreeRight() > 2)
+                                                {speakQuestion(0);}
+                                            }
+                                        };
+                                        Timer timer2 = new Timer();
+                                        timer2.schedule(task, 5000);
+
+                                    }
+                                });
+                            }
+                        };
+                        Timer timer = new Timer();
+                        timer.schedule(task, 10);
+                    }
+
+                    @Override
+                    public void onError(String utteranceId) {
+                        Log.i("First", "Error Speaking");
+                    }
+
+                    @Override
+                    public void onStart(String utteranceId) {
+                    }
+                });
+
+                ttsSpeak("We encountered an error, please make sure that your network connection if fine. I will ask you another question in 5 seconds");
+
+
+
+
+        }
+
+        if (errorCode == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+            //in the initial three questions error
+
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                @Override
+                public void onDone(String utteranceId) {
+                    errorCount++;
+                    task = new TimerTask() {
+                        public void run() {
+                            MainActivity.this.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    mSpeechRecognizerManager.destroy();
+                                    createSpeechRecognizer();
+                                    ttsDestroy();
+                                    createTTS();
+                                    task = new TimerTask() {
+                                        public void run() {
+                                            if (currentSession.getBooleanStatusThree() && currentSession.getThreeTries() < 3)
+                                            {speakQuestion(1);}
+                                            if (!currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2 && currentSession.getThreeRight() > 2)
+                                            {speakQuestion(0);}
+                                        }
+                                    };
+                                    Timer timer2 = new Timer();
+                                    timer2.schedule(task, 5000);
+
+                                }
+                            });
+                        }
+                    };
+                    Timer timer = new Timer();
+                    timer.schedule(task, 10);
+                }
+
+                @Override
+                public void onError(String utteranceId) {
+                    Log.i("First", "Error Speaking");
+                }
+
+                @Override
+                public void onStart(String utteranceId) {
+                }
+            });
+
+            ttsSpeak("I didn't get what you said, please wait for the next question");
+
+        }
+
     }
 
     public static String getErrorText(int errorCode) {
