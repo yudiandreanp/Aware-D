@@ -31,6 +31,8 @@ public class DrivingSession {
         statusThreeQuestions = true;
         mUserResults = new ArrayList<>();
         mUserProgress = new ArrayList<>();
+        mQuestionAskedArray = new ArrayList<>();
+        mUserAnswerArray = new ArrayList<>();
     }
 
     public void incrementThreeTries()
@@ -74,7 +76,7 @@ public class DrivingSession {
 
     public boolean getBooleanStatusThree(){return statusThreeQuestions;}
 
-    public void endTime(Calendar endTime)
+    public void setEndTime(Calendar endTime)
     {
         mEndTime = endTime;
     }
@@ -103,6 +105,12 @@ public class DrivingSession {
     public void setAlertedLocation (Location l)
     {
         mAlertedLocation = l;
+    }
+
+    public void addUserStats(int index, String userAnswer)
+    {
+        mQuestionAskedArray.add(index);
+        mUserAnswerArray.add(userAnswer);
     }
 
 

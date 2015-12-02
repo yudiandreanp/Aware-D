@@ -27,38 +27,29 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/infoText"
+        android:layout_above="@+id/linearLayout"
         android:layout_marginTop="28dp"
         android:paddingLeft="10dp"
         android:paddingRight="10dp" />
 
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="SMS"
-        android:id="@+id/smsButton"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@+id/progressBar1"/>
 
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_marginBottom="10dp"
+        android:layout_marginBottom="100dp"
         android:gravity="center"
         android:orientation="vertical"
         android:id="@+id/linearLayout">
 
 
-        <ToggleButton
+        <Button
             android:id="@+id/btnDrive"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/ico_mic"
-            android:textOff=""
-            android:textOn=""/>
+            />
 
         <TextView
             android:layout_width="wrap_content"
@@ -67,7 +58,8 @@
             android:text="tap to drive"
             android:textColor="@color/white"
             android:textSize="15dp"
-            android:textStyle="normal" />
+            android:textStyle="normal"
+            android:id="@+id/buttonDriveText"/>
 
     </LinearLayout>
 

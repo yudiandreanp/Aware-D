@@ -169,19 +169,13 @@ public class SpeechRecognizerManager {
                 for (int i = 0; i < heard.size(); i++) {
                     Log.d(TAG, "onResultsheard:" + heard.get(i)
                             + " confidence:" + scores[i]);
-
                 }
-
-
                 //sends list of workds to mOnResultListener
                 if (mOnResultListener!=null){
                     mOnResultListener.OnResult(heard);
                 }
 
             }
-
-
-
         }
 
 
@@ -215,6 +209,5 @@ public class SpeechRecognizerManager {
     {
         mGoogleSpeechRecognizer.startListening(mSpeechRecognizerIntent);
     }
-
 
 }

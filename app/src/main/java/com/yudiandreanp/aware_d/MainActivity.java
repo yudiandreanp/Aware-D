@@ -9,7 +9,6 @@ import java.util.Random;
 import java.lang.Integer;
 import java.util.Timer;
 import java.util.TimerTask;
-
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.database.Cursor;
@@ -20,10 +19,11 @@ import android.speech.tts.TextToSpeech;
 import android.content.Intent;
 import android.os.Bundle;
 import android.speech.tts.UtteranceProgressListener;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -38,13 +38,14 @@ import com.google.common.collect.Lists;
  * text, and also sends text to TextSpeaker class
  */
 
-public class MainActivity extends ActionBarActivity implements SpeechRecognizerManager.OnResultListener, SpeechRecognizerManager.OnErrorListener {
+public class MainActivity extends AppCompatActivity implements SpeechRecognizerManager.OnResultListener, SpeechRecognizerManager.OnErrorListener {
     private final int CHECK_CODE = 0x1;
     private final int MAX_INDEX = 30;
+    private int currentIndex;
     private final int MIN_INDEX = 1;
     private boolean ready = false;
     private boolean allowed = false;
-    private TextView textInfoText;
+    private TextView textInfoText, textButtonDriveText;
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private ProgressBar progressBar;
     private Intent recognizerIntent;
@@ -54,7 +55,7 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
     private ArrayList<Integer> questionIndex, threeQuestionIndex;
     private int count, countThree, errorCount; //counter for index and right-tries of three questions
     private String currentUserAnswer, latitude, longitude, phoneNumber; //holds the spoken answer by the user
-    private ArrayList <String> currentQuestionAnswer, firstThreeQuestions; //holds the current question and answer
+    private ArrayList <String> currentQuestionAnswer; //holds the current question and answer
     private GPSManager currentLocation;
     private SMSManager smsSender;
     private boolean isDriving;
@@ -76,9 +77,9 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
         //createTextSpeaker(); //create the speaker instance
         createTTS();
         textInfoText = (TextView) findViewById(R.id.infoText);
+        textButtonDriveText = (TextView) findViewById(R.id.buttonDriveText);
         buttonDriveNow = (Button) findViewById(R.id.btnDrive);
         progressBar = (ProgressBar) findViewById(R.id.progressBar1);
-        smsButton = (Button) findViewById(R.id.smsButton);
         progressBar.setVisibility(View.INVISIBLE);
         questionIndex = rangeList(MIN_INDEX, MAX_INDEX); //creates the index for iterating question arraylist
         questionIndex = shuffleIndex(questionIndex);
@@ -95,33 +96,12 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
         isDriving = false;
         createTTS();
         ttsAllow(true);
-        startInitialQuestion();
+        setDriveButtonListenerInitial();
 
-
-        smsButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View view) {
-
-                double dLatitude;
-                double dLongitude;
-
-                if(currentLocation.canGetLocation())
-                {
-                    dLatitude = currentLocation.getLatitude();
-                    dLongitude = currentLocation.getLongitude();
-                    Toast.makeText(getApplicationContext(), "Your Location is - \nLat: " + dLatitude + "\nLong: " + dLongitude, Toast.LENGTH_LONG).show();
-                    String latitude = String.valueOf(dLatitude);
-                    String longitude = String.valueOf(dLongitude);
-                    String phoneNumber = "+6289693959600";
-                    smsSender.sendLocationSMS(phoneNumber, latitude, longitude);
-                }
-                else
-                {
-                    currentLocation.showSettingsAlert();
-                }
-
-                }
-        });
-
+        if(!currentLocation.canGetLocation())
+        {
+            currentLocation.showSettingsAlert();
+        }
 
     }
 
@@ -170,12 +150,6 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
         }
     };
 
-//    @Override
-//    public void onBeginningOfSpeech() {
-//        Log.i(LOG_TAG, "onBeginningOfSpeech");
-//        progressBar.setIndeterminate(false);
-//        progressBar.setMax(10);
-//    }
 
     @Override
     protected void onDestroy() {
@@ -254,29 +228,26 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
 
     private Calendar updateTime()
     {
-        Calendar c = Calendar.getInstance();
-        return c;
+        return Calendar.getInstance();
     }
-
 
     //reads question on randomized value
     private ArrayList<String> getQuestionAnswer(int option)
     {
-        int index;
         DBReader mDbHelper = new DBReader(MainActivity.this);
         mDbHelper.createDatabase();
         mDbHelper.open();
         ArrayList <String> result = new ArrayList <>();
 
         if(option == 0) {
-            index = getCurrentIndex();
+            currentIndex = getCurrentIndex();
         }
         else
         {
-            index = getCurrentThreeQuestionIndex();
+            currentIndex = getCurrentThreeQuestionIndex();
         }
 
-        Cursor data = mDbHelper.getQuestion(index);  //the query for question
+        Cursor data = mDbHelper.getQuestion(currentIndex);  //the query for question
         //while (testdata.moveToNext()) {
             for (int i = 0; i < data.getColumnCount(); i++) {
                 result.add(data.getString(i));
@@ -284,7 +255,7 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
           //  }
         }
 
-        data = mDbHelper.getAnswer(index); //query for answer
+        data = mDbHelper.getAnswer(currentIndex); //query for answer
         //while (testdata.moveToNext()) {
         for (int i = 0; i < data.getColumnCount(); i++) {
             result.add(data.getString(i));
@@ -303,8 +274,6 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
         mSpeechRecognizerManager.setOnResultListener(this);
         mSpeechRecognizerManager.setOnErrorListener(this);
     }
-
-
 
     //creates the speaker instance
     private void createTTS()
@@ -401,7 +370,6 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
             count++;
             return index;
         }
-
     }
 
     /**
@@ -463,51 +431,7 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
         dialog.show();
     }
 
-    /**
-     * This method is used to start the click listener when the user wants to drive
-     * This trigger the first 3 questions for the user
-     */
-    private void startInitialQuestion()
-    {
-        buttonDriveNow.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View view) {
-                if (!isDriving) {
-                    ttsSpeak(getString(R.string.before_driving1) + "," +
-                             getString(R.string.before_driving2) + "," +
-                             getString(R.string.before_driving3));
 
-                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-
-                        @Override
-                        public void onDone(String utteranceId) {
-                            MainActivity.this.runOnUiThread(new Runnable() {
-
-                                @Override
-                                public void run() {
-                                    createStartInitialDialog();
-                                }
-                            });
-
-                        }
-
-                        @Override
-                        public void onError(String utteranceId) {
-                            Log.i("Text Speaker", "Error Speaking");
-                        }
-
-                        @Override
-                        public void onStart(String utteranceId) {
-
-                        }
-
-
-                    });
-
-
-                    }
-            }
-        });
-    }
 
     /**
      * This method is used to generate the first three questions index
@@ -559,6 +483,9 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
     {
         Log.i("Ayoayo", "Mulaii");
         checkTTS();
+        //set the button to stop button
+        setDriveButtonListenerStopQuestions();
+        textButtonDriveText.setText("Tap to Stop Questions");
         speakQuestion(1);
     }
 
@@ -589,25 +516,12 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
         }
     }
 
-    //access the status of utterance to pass to other class (MainActivity)
-    //public boolean ttsIsFinished()
-    //{
-    //    return finished;
-    //}
-
-    //access the tts readiness status
     public boolean ttsIsReady()
     {
         return ready;
     }
 
-    //reset the utterance status to not finished
-    //public void ttsSetNotFinished()
-    //{
-    //    finished = false;
-    //}
-
-    public void ttsPause(int duration){
+    public void ttsPause(int duration) {
         tts.playSilence(duration, TextToSpeech.QUEUE_ADD, null);
     }
 
@@ -698,11 +612,10 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
         //driving state here
         if (!currentSession.getBooleanStatusThree() && currentSession.getThreeTries() > 2 && currentSession.getThreeRight() > 2)
         {
+            setDriveButtonListenerStopDriving();
             tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
                 @Override
                 public void onDone(String utteranceId) {
-
-
                     task = new TimerTask() {
                         public void run() {
                             speakQuestion(0);
@@ -722,15 +635,20 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
                 }
             });
 
+
             if (currentUserAnswer != null) {
                 if (checkTrue()) {
                     ttsSpeak("You are right, now wait for next question");
                     currentSession.addUserResults(true);
                     currentSession.addUserProgress(true);
+                    currentSession.addUserStats(currentIndex, currentUserAnswer);
                 } else {
                     ttsSpeak("Wrong, please answer carefully. Now wait for the next question");
                     currentSession.addUserResults(false);
                     currentSession.addUserProgress(false);
+                    currentSession.addUserStats(currentIndex, currentUserAnswer);
+                    currentSession.setEndTime(updateTime());
+                    //TODO put the currentSession into database
                 }
             }
         }
@@ -754,11 +672,10 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
                                     {
                                         dLatitude = currentLocation.getLatitude();
                                         dLongitude = currentLocation.getLongitude();
-                                        Toast.makeText(getApplicationContext(), "Your Location is - \nLat: " + dLatitude + "\nLong: " + dLongitude, Toast.LENGTH_LONG).show();
                                         latitude = String.valueOf(dLatitude);
                                         longitude = String.valueOf(dLongitude);
                                         phoneNumber = "+6289693959600";
-
+                                        currentSession.setAlertedLocation(currentLocation.getLocation());
                                     }
                                     else
                                     {
@@ -982,6 +899,116 @@ public class MainActivity extends ActionBarActivity implements SpeechRecognizerM
                 break;
         }
         return message;
+    }
+
+    public void setDriveButtonListenerStopQuestions()
+    {
+        buttonDriveNow.setBackground(this.getResources().getDrawable(R.drawable.ico_mic_on));
+        buttonDriveNow.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle("Stop Questions?");
+                builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                        mSpeechRecognizerManager.destroy();
+                        createSpeechRecognizer();
+                        ttsDestroy();
+                        createTTS();
+                        setDriveButtonListenerInitial();
+                    }
+                });
+                builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                });
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+        });
+    }
+
+    /**
+     * This method is used to start the click listener when the user wants to drive
+     * This trigger the first 3 questions for the user
+     */
+    private void setDriveButtonListenerInitial()
+    {
+        textButtonDriveText.setText("Tap to Drive");
+        buttonDriveNow.setBackground(this.getResources().getDrawable(R.drawable.ico_mic));
+        buttonDriveNow.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+                if (!isDriving) {
+                    buttonDriveNow.setClickable(false);
+                    ttsSpeak(getString(R.string.before_driving1) + "," +
+                            getString(R.string.before_driving2) + "," +
+                            getString(R.string.before_driving3));
+
+                    tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+
+                        @Override
+                        public void onDone(String utteranceId) {
+                            MainActivity.this.runOnUiThread(new Runnable() {
+
+                                @Override
+                                public void run() {
+                                    buttonDriveNow.setClickable(true);
+                                    createStartInitialDialog();
+                                }
+                            });
+
+                        }
+
+                        @Override
+                        public void onError(String utteranceId) {
+                            Log.i("Text Speaker", "Error Speaking");
+                        }
+
+                        @Override
+                        public void onStart(String utteranceId) {
+
+                        }
+
+
+                    });
+
+
+                }
+            }
+        });
+    }
+
+    public void setDriveButtonListenerStopDriving()
+    {
+        textButtonDriveText.setText("Driving...(Tap to Stop Driving)");
+        buttonDriveNow.setBackground(this.getResources().getDrawable(R.drawable.ico_mic_on));
+        buttonDriveNow.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle("Stop Driving?");
+                builder.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                        mSpeechRecognizerManager.destroy();
+                        createSpeechRecognizer();
+                        ttsDestroy();
+                        createTTS();
+                        currentSession.setEndTime(updateTime());
+                        //TODO put the current session into database
+                        setDriveButtonListenerInitial();
+                    }
+                });
+                builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                });
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
+            }
+        });
     }
 
 }
