@@ -16,4 +16,9 @@
         android:title="@string/set_users_name"
         app:showAsAction="never"
     />
+    <item
+        android:id="@+id/stats"
+        android:title="@string/stats"
+        app:showAsAction="never"
+        />
 </menu>

@@ -5,8 +5,10 @@ import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.text.format.Time;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Created by yudiandrean on 11/14/2015.
@@ -130,14 +132,30 @@ public class DrivingSession {
         return count;
     }
 
-    public Calendar getStartTime()
+    public String getStartTime()
     {
-        return mStartTime;
+        long yourmilliseconds = mStartTime.getTimeInMillis();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        Date resultdate = new Date(yourmilliseconds);
+        return sdf.format(resultdate);
     }
 
-    public Calendar getEndTime()
+    public String getEndTime()
     {
-        return mEndTime;
+        long yourmilliseconds = mEndTime.getTimeInMillis();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        Date resultdate = new Date(yourmilliseconds);
+        return sdf.format(resultdate);
+    }
+
+    public long getStartTimeMillis()
+    {
+        return mStartTime.getTimeInMillis();
+    }
+
+    public long getEndTimeMillis()
+    {
+        return mEndTime.getTimeInMillis();
     }
 
     public boolean getInitialResults()

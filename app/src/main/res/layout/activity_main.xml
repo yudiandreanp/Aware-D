@@ -55,7 +55,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="tap to drive"
             android:textColor="@color/white"
             android:textSize="15dp"
             android:textStyle="normal"

@@ -99,4 +99,72 @@ public class DBReader
             throw mSQLException;
         }
     }
+
+    /**
+     * Insert data into the statistics according to the option selected
+     * @param
+     */
+    public void insertStats(int pass_initial, String start_time, int question_answered, int wrong_answers, String end_time)
+    {
+            String sql = "INSERT INTO stats VALUES (null, " + pass_initial + ", "
+                    + start_time + ", " + question_answered + ", " + wrong_answers + ", "
+                    + end_time + ")";
+            try {
+                mDb.execSQL(sql);
+            } catch (SQLException mSQLException) {
+                Log.e(TAG, "insertData >>" + mSQLException.toString());
+                throw mSQLException;
+            }
+
+    }
+
+    /**
+     * Insert data into the statistics according to the option selected
+     * @param
+     */
+    public void insertContacts(String name, String number)
+    {
+
+            String sql = "INSERT INTO contacts VALUES (" + name + "," + number + ")";
+            try {
+                mDb.execSQL(sql);
+
+            } catch (SQLException mSQLException) {
+                Log.e(TAG, "insertData >>" + mSQLException.toString());
+                throw mSQLException;
+            }
+    }
+
+    public Cursor getLastIndexStats() {
+
+        try {
+            String sql = "SELECT _id_session FROM stats WHERE _id_session = (SELECT MAX (_id_session) FROM stats)";
+            Cursor mCur = mDb.rawQuery(sql, null);
+            Log.e(TAG, "got the id!");
+            if (mCur != null) {
+                mCur.moveToNext();
+            }
+            return mCur;
+        } catch (SQLException mSQLException) {
+            Log.e(TAG, "getTestData >>" + mSQLException.toString());
+            throw mSQLException;
+        }
+    }
+
+    public Cursor getStats(int index) {
+
+        try {
+            String sql = "SELECT * FROM stats WHERE _id_session > " + index;
+            Cursor mCur = mDb.rawQuery(sql, null);
+            Log.e(TAG, "got the stats!");
+            if (mCur != null) {
+                mCur.moveToNext();
+            }
+            return mCur;
+        } catch (SQLException mSQLException) {
+            Log.e(TAG, "getTestData >>" + mSQLException.toString());
+            throw mSQLException;
+        }
+    }
+
 }

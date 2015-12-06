@@ -54,13 +54,14 @@ public class SpeechRecognizerManager {
     private Context mContext;
     private OnResultListener mOnResultListener;
     private OnErrorListener mOnErrorListener;
+    private OnRmsChangedListener mOnRmsChangedListener;
     private int errorInt;
-
 
     public SpeechRecognizerManager(Context context) {
         this.mContext = context;
         this.mOnResultListener = (OnResultListener)context;
         this.mOnErrorListener = (OnErrorListener)context;
+        this.mOnRmsChangedListener = (OnRmsChangedListener)context;
         initGoogleSpeechRecognizer();
     }
 
@@ -117,6 +118,9 @@ public class SpeechRecognizerManager {
 
         @Override
         public void onRmsChanged(float rmsdB) {
+            if (mOnRmsChangedListener!=null){
+                mOnRmsChangedListener.OnRmsChanged(rmsdB);
+            }
         }
 
         @Override
@@ -195,9 +199,19 @@ public class SpeechRecognizerManager {
         mOnErrorListener=onErrorListener;
     }
 
+
+    public void setOnRmsChangedListener(OnRmsChangedListener onRmsChangedListener){
+        mOnRmsChangedListener=onRmsChangedListener;
+    }
+
     public interface OnResultListener
     {
         public void OnResult(ArrayList<String> commands);
+    }
+
+    public interface OnRmsChangedListener
+    {
+        public void OnRmsChanged(float rmsdB);
     }
 
     public interface OnErrorListener

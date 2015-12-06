@@ -22,8 +22,6 @@ public class DataBaseHelper extends SQLiteOpenHelper {
     private static String DB_PATH = "";
     private String LOG_TAG = "DatabaseHelper";
     private static String DB_NAME = "question_answer.sqlite";
-    private static String TABLE_CONTACTS = "contacts";
-    private static String TABLE_USERNAME = "username";
     private SQLiteDatabase myDataBase;
     private final Context myContext;
     /**
@@ -139,14 +137,7 @@ public class DataBaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String CREATE_CONTACTS_TABLE = "CREATE TABLE " + TABLE_CONTACTS + "("
-                + "id" + " INTEGER PRIMARY KEY," + "full_name" + " TEXT,"
-                + "phone" + " TEXT" + ")";
-        String CREATE_USERNAME_TABLE = "CREATE TABLE " + TABLE_USERNAME + "("
-                + "id" + " INTEGER PRIMARY KEY," + "full_name" + " TEXT,"
-                + ")";
-        db.execSQL(CREATE_CONTACTS_TABLE);
-        db.execSQL(CREATE_USERNAME_TABLE);
+
     }
 
     @Override
