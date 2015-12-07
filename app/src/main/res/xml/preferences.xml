@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference
+        android:title="Name"
+        android:key="username"
+        android:summary="Provide Nick Name"></EditTextPreference>
+    <CheckBoxPreference android:title="Application Updates"
+        android:defaultValue="false"
+        android:summary="This option if selected will allow the application to check for latest versions."
+        android:key="applicationUpdates" />
+    <EditTextPreference
+        android:title="Contact Number"
+        android:inputType="phone"
+        android:summary="The Contact Number that will be sent messages"
+        android:key="contactNumber"/>
+</PreferenceScreen>
