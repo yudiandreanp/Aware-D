@@ -15,9 +15,11 @@ import java.util.TimerTask;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.media.AudioManager;
 import android.net.ParseException;
+import android.preference.PreferenceManager;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
@@ -88,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
         count = 0;
         countThree = 0;
         currentLocation= new GPSManager(MainActivity.this);
-        smsSender = new SMSManager ();
+        smsSender = new SMSManager (MainActivity.this);
         //createTextSpeaker(); //create the speaker instance
         createTTS();
         textInfoText = (TextView) findViewById(R.id.infoText);
@@ -252,68 +254,74 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
     public boolean onOptionsItemSelected(MenuItem item){
         // Handle item selection
         switch (item.getItemId()) {
-            case R.id.set_users_name:
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle("Username");
-                // Set up the input
-                final EditText input = new EditText(this);
-                // Specify the type of input expected;
-                input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE);
-                builder.setView(input);
-
-                // Set up the buttons
-                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        m_text = input.getText().toString();
-                    }
-                });
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
-
-                builder.show();
-                return true;
-
-            case R.id.set_contacts:
-                // showdelete();
-                final AlertDialog.Builder alert = new AlertDialog.Builder(this);
-
-                LinearLayout lila1= new LinearLayout(this);
-                lila1.setOrientation(LinearLayout.VERTICAL);
-                final EditText input_name = new EditText(this);
-                final EditText input_number = new EditText(this);
-                input_name.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
-                input_number.setInputType(InputType.TYPE_CLASS_PHONE);
-                input_name.setHint("Contact Name...");
-                input_number.setHint("Phone Number...");
-                lila1.addView(input_name);
-                lila1.addView(input_number);
-                alert.setView(lila1);
-                alert.setTitle("New Contact");
-
-                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        String name_contact = input_name.getText().toString().trim();
-                        String number_contact = input_number.getText().toString().trim();
-                        Toast.makeText(getApplicationContext(), name_contact + " " + number_contact, Toast.LENGTH_SHORT).show();
-                    }
-                });
-                alert.setNegativeButton("Cancel",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int whichButton) {
-                                dialog.cancel();
-                            }
-                        });
-                alert.show();
-                return true;
+//            case R.id.set_users_name:
+//                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+//                builder.setTitle("Username");
+//                // Set up the input
+//                final EditText input = new EditText(this);
+//                // Specify the type of input expected;
+//                input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_SHORT_MESSAGE);
+//                builder.setView(input);
+//
+//                // Set up the buttons
+//                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int which) {
+//                        m_text = input.getText().toString();
+//                    }
+//                });
+//                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int which) {
+//                        dialog.cancel();
+//                    }
+//                });
+//
+//                builder.show();
+//                return true;
+//
+//            case R.id.set_contacts:
+//                // showdelete();
+//                final AlertDialog.Builder alert = new AlertDialog.Builder(this);
+//
+//                LinearLayout lila1= new LinearLayout(this);
+//                lila1.setOrientation(LinearLayout.VERTICAL);
+//                final EditText input_name = new EditText(this);
+//                final EditText input_number = new EditText(this);
+//                input_name.setInputType(InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
+//                input_number.setInputType(InputType.TYPE_CLASS_PHONE);
+//                input_name.setHint("Contact Name...");
+//                input_number.setHint("Phone Number...");
+//                lila1.addView(input_name);
+//                lila1.addView(input_number);
+//                alert.setView(lila1);
+//                alert.setTitle("New Contact");
+//
+//                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+//                    public void onClick(DialogInterface dialog, int whichButton) {
+//                        String name_contact = input_name.getText().toString().trim();
+//                        String number_contact = input_number.getText().toString().trim();
+//                        Toast.makeText(getApplicationContext(), name_contact + " " + number_contact, Toast.LENGTH_SHORT).show();
+//                    }
+//                });
+//                alert.setNegativeButton("Cancel",
+//                        new DialogInterface.OnClickListener() {
+//                            public void onClick(DialogInterface dialog, int whichButton) {
+//                                dialog.cancel();
+//                            }
+//                        });
+//                alert.show();
+//                return true;
 
             case R.id.stats:
                 Intent mainIntent = new Intent(MainActivity.this,StatisticsActivity.class);
                 MainActivity.this.startActivity(mainIntent);
+                return true;
+
+            case R.id.action_settings:
+                Intent i = new Intent(this, SettingsActivity.class);
+                MainActivity.this.startActivity(i);
+                return true;
 
             default:
                 return super.onOptionsItemSelected(item);
@@ -358,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
             //  }
         }
 
-        //mDbHelper.close();
+        mDbHelper.close();
         return result;
     }
 
@@ -773,7 +781,8 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
                                         dLongitude = currentLocation.getLongitude();
                                         latitude = String.valueOf(dLatitude);
                                         longitude = String.valueOf(dLongitude);
-                                        phoneNumber = "+6289693959600";
+                                        SharedPreferences SP = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                                        phoneNumber = SP.getString("contactNumber", "+6285349015430");
                                         currentSession.setAlertedLocation(currentLocation.getLocation());
                                     }
                                     else
@@ -788,6 +797,7 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
                                             task = new TimerTask() {
                                                 public void run() {
                                                     smsSender.sendLocationSMS(phoneNumber, latitude, longitude);
+                                                    setDriveButtonListenerInitial();
                                                 }
                                             };
                                             Timer timer2 = new Timer();
@@ -824,6 +834,7 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
                         }
                     }
                     mDbHelper.insertStats(1, String.valueOf(currentSession.getStartTimeMillis()), count_total, count_wrong, String.valueOf(System.currentTimeMillis()));
+
 
                 }
             }
@@ -1177,5 +1188,14 @@ public class MainActivity extends AppCompatActivity implements SpeechRecognizerM
         });
     }
 
+    private int getLastIndex()
+    {
+        DBReader mDbHelper = new DBReader(MainActivity.this);
+        mDbHelper.createDatabase();
+        mDbHelper.open();
+        int ret = mDbHelper.getLastIndexStats().getInt(0);
+        mDbHelper.close();
+        return ret;
+    }
 
 }

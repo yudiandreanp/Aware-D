@@ -4,18 +4,17 @@
     <item
         android:id="@+id/action_settings"
         android:title="@string/action_settings"
-        android:orderInCategory="100"
         app:showAsAction="never" />
-    <item
-        android:id="@+id/set_contacts"
-        android:title="@string/set_contacts"
-        app:showAsAction="never"
-    />
-    <item
-        android:id="@+id/set_users_name"
-        android:title="@string/set_users_name"
-        app:showAsAction="never"
-    />
+    <!--<item-->
+        <!--android:id="@+id/set_contacts"-->
+        <!--android:title="@string/set_contacts"-->
+        <!--app:showAsAction="never"-->
+    <!--/>-->
+    <!--<item-->
+        <!--android:id="@+id/set_users_name"-->
+        <!--android:title="@string/set_users_name"-->
+        <!--app:showAsAction="never"-->
+    <!--/>-->
     <item
         android:id="@+id/stats"
         android:title="@string/stats"

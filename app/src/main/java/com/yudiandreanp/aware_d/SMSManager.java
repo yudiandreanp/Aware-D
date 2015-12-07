@@ -1,6 +1,9 @@
 package com.yudiandreanp.aware_d;
 
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.telephony.SmsManager;
 import android.util.Log;
 
@@ -15,16 +18,23 @@ import android.util.Log;
 public class SMSManager {
 
     private final String MAP_LINK = "http://www.google.com/maps/place/";
+    private final Context mContext;
+    private String user;
+    private SharedPreferences SP;
 
-    public SMSManager()
+
+    public SMSManager(Context context)
     {
+        this.mContext = context;
+        SP = PreferenceManager.getDefaultSharedPreferences(context);
     }
 
     public void sendLocationSMS(String phone, String latitude, String longitude)
     {
         String comma = ",";
         String mLink = MAP_LINK + latitude + comma + longitude;
-        String smsText = "We detect unaware driving by your friend. "
+        user = SP.getString("username", "NA");
+        String smsText = "We detect unaware driving by your friend " + user + " "
                 + mLink;
 
         try

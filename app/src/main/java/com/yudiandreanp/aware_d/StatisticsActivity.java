@@ -124,7 +124,7 @@ public class StatisticsActivity extends Activity
                 data.moveToNext();
             }
         }
-        //mDbHelper.close();
+
         numPoints = new Float[5];
         //1st point
         if (Integer.valueOf(array.get(1)) == 0)
@@ -186,6 +186,7 @@ public class StatisticsActivity extends Activity
             dateTime[count1]=sdf.format(resultdate);
             count1++;
         }
+        mDbHelper.close();
     }
 
     private String makeString(ArrayList<String> arraystring)
@@ -204,7 +205,7 @@ public class StatisticsActivity extends Activity
         mDbHelper.createDatabase();
         mDbHelper.open();
         int ret = mDbHelper.getLastIndexStats().getInt(0);
-        //mDbHelper.close();
+        mDbHelper.close();
         return ret;
     }
 

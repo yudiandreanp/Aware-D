@@ -13,11 +13,13 @@ public class DBReader
     private final Context mContext;
     private SQLiteDatabase mDb;
     private DataBaseHelper mDbHelper;
+    private String sql;
 
     public DBReader(Context context)
     {
         this.mContext = context;
         mDbHelper = new DataBaseHelper(mContext);
+        mDb = mDbHelper.getReadableDatabase();
     }
 
     public DBReader createDatabase() throws SQLException
@@ -106,7 +108,7 @@ public class DBReader
      */
     public void insertStats(int pass_initial, String start_time, int question_answered, int wrong_answers, String end_time)
     {
-            String sql = "INSERT INTO stats VALUES (null, " + pass_initial + ", "
+            sql = "INSERT INTO stats VALUES (null, " + pass_initial + ", "
                     + start_time + ", " + question_answered + ", " + wrong_answers + ", "
                     + end_time + ")";
             try {
